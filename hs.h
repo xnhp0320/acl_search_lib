@@ -32,9 +32,9 @@ struct range1d {
 
 typedef struct hs_node_s
 {
-	unsigned char		d2s;		/* dimension to split, 2bit is enough */
-	unsigned char		depth;		/* tree depth of the node */
-	unsigned int		thresh;		/* thresh value to split the current segments */
+    unsigned char		d2s;		/* dimension to split, 2bit is enough */
+    unsigned char		depth;		/* tree depth of the node */
+    unsigned int		thresh;		/* thresh value to split the current segments */
     unsigned int        child_idx;
     rule_set_t          ruleset;
 } hs_node_t;

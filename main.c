@@ -48,7 +48,7 @@ static double orwl_timebase = 0.0;
 static uint64_t orwl_timestart = 0;
 
 struct timespec orwl_gettime(void) {
-      // be more careful in a multithreaded environement
+    // be more careful in a multithreaded environement
     if (!orwl_timestart) {
         mach_timebase_info_data_t tb = { 0 };
         mach_timebase_info(&tb);
@@ -76,7 +76,7 @@ hs_key_t *sample_rules(rule_set_t *ruleset, int samples_cnt)
         for(j = 0; j < samples_cnt; j ++) {
             for(k = 0; k < DIM; k ++) {
                 key[i * samples_cnt + j].key[k] = \
-                        rand() % ((unsigned long)r->range[k][1] - r->range[k][0] + 1ULL) + r->range[k][0];
+                                                  rand() % ((unsigned long)r->range[k][1] - r->range[k][0] + 1ULL) + r->range[k][0];
             }
         }
     }
@@ -97,7 +97,7 @@ int load_ft(FILE *fpt, hs_key_t *key)
             &(key->key[4]),
             &junk,
             &junkmask);
-    
+
     if(ret != 7)
         return 0;
     return 1;
@@ -113,10 +113,10 @@ int main(int argc, char *argv[])
 
     hs_tree_t tree;
     tree.params.bucketSize = bucketSize;
-    
+
     struct timespec tp_b;
     struct timespec tp_a;
-   
+
     CLOCK_GETTIME(&tp_b);
     ret = hs_build_tree(&tree, &ruleset);
     CLOCK_GETTIME(&tp_a);
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
     }
     hs_tree_info(&tree);
 
-//#define SAMPLE
+    //#define SAMPLE
 #ifdef SAMPLE
     hs_key_t *keys = sample_rules(&ruleset, 100);
 

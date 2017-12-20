@@ -2,17 +2,18 @@
 #define __UTILS_INL_H__
 #include "utils.h"
 
+#define MAXFILTERS	65535 /* support 64K rules */	
 struct FILTER						
 {
-	unsigned int cost;		
-	unsigned int dim[DIM][2];
-	unsigned char act;	
+    unsigned int cost;		
+    unsigned int dim[DIM][2];
+    unsigned char act;	
 };
 
 struct FILTSET
 {
-	unsigned int	numFilters;	
-	struct FILTER	filtArr[MAXFILTERS];
+    unsigned int	numFilters;	
+    struct FILTER	filtArr[MAXFILTERS];
 };
 
 

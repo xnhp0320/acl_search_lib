@@ -47,10 +47,10 @@ static hs_node_t *hs_node_vec_at(struct hs_node_vec *vec, unsigned int idx)
 }
 
 static int __uint_compare(
-    const void *e1,
-    const void *e2,
-    const void *udata __attribute__((__unused__))
-    )
+        const void *e1,
+        const void *e2,
+        const void *udata __attribute__((__unused__))
+        )
 {
     const unsigned int *i1 = e1;
     const unsigned int *i2 = e2;
@@ -71,14 +71,14 @@ static int hs_prep_build(hs_tree_t *tree, rule_set_t *ruleset)
     }
 
     tree->aux.ranges_output = \
-                    (struct range1d *)hs_calloc(ruleset->num * 2, sizeof(struct range1d));
+                              (struct range1d *)hs_calloc(ruleset->num * 2, sizeof(struct range1d));
     if(!tree->aux.ranges_output) {
         hs_node_vec_uinit(&tree->aux.node_vec);
         return -1;
     }
 
     tree->aux.ranges_sort = \
-                    (struct range1d *)hs_calloc(ruleset->num, sizeof(struct range1d));
+                            (struct range1d *)hs_calloc(ruleset->num, sizeof(struct range1d));
     if(!tree->aux.ranges_sort) {
         hs_node_vec_uinit(&tree->aux.node_vec);
         hs_free(tree->aux.ranges_output);
@@ -102,7 +102,7 @@ static int _range_compare(const void *a, const void *b)
 {
     const struct range1d *r1 = (const struct range1d*)a;
     const struct range1d *r2 = (const struct range1d*)b;
-    
+
     if(r1->low != r2->low)
         if(r1->low < r2->low)
             return -1;
@@ -142,7 +142,7 @@ static unsigned int hs_gen_segs(hs_node_t *node, hs_build_aux_t *aux, int dim)
     qsort(aux->ranges_sort, \
             node->ruleset.num, sizeof(struct range1d), _range_compare);
     int uniq_num = unique_ranges(aux->ranges_sort, node->ruleset.num);
-    
+
     unsigned long start = aux->ranges_sort[0].low;
     heap_offer(&aux->heap, &(aux->ranges_sort[0].high));
 
@@ -197,11 +197,11 @@ static unsigned int hs_gen_segs(hs_node_t *node, hs_build_aux_t *aux, int dim)
 static void remove_redund(rule_set_t *ruleset)
 {
     int i,j;
-    
+
     for(i=1; i < ruleset->num; i++) {
         for(j=0; j < i; j++) {
             if(rule_contained(&ruleset->ruleList[j], \
-                            &ruleset->ruleList[i])) {
+                        &ruleset->ruleList[i])) {
                 ruleset->ruleList[i].pri = UINT32_MAX;        
             }
         }
@@ -219,65 +219,65 @@ static void remove_redund(rule_set_t *ruleset)
 
 int	hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
 {
-	/* generate segments for input filtset */
-	unsigned int	dim, num, seg_cnt;
+    /* generate segments for input filtset */
+    unsigned int	dim, num, seg_cnt;
     int             i,j, ret;
-	unsigned int	max_seg_cnt = 1; /* maximum different segment points */
-	unsigned int	d2s = 0;		 /* dimension to split (with max diffseg) */
-	unsigned int	thresh = 0;
-	unsigned int	range[2][2] = {{0, 0}, {0, 0}};     /* sub-space ranges for child-nodes */
-	float			hightAvg, hightAll;
+    unsigned int	max_seg_cnt = 1; /* maximum different segment points */
+    unsigned int	d2s = 0;		 /* dimension to split (with max diffseg) */
+    unsigned int	thresh = 0;
+    unsigned int	range[2][2] = {{0, 0}, {0, 0}};     /* sub-space ranges for child-nodes */
+    float			hightAvg, hightAll;
     hs_node_t*      currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
     rule_set_t      *ruleset = &currNode->ruleset;
 
 #ifdef	DEBUG
-	printf("\n\n>>hs_build at depth=%d", depth);
-	printf("\n>>Current Rules:");
-	for (num = 0; num < ruleset->num; num++) {
-		printf ("\n>>%5dth Rule:", ruleset->ruleList[num].pri);
-		for (dim = 0; dim < DIM; dim++) {
-			printf (" [%-8x, %-8x]", ruleset->ruleList[num].range[dim][0], ruleset->ruleList[num].range[dim][1]);
-		}
-	}
+    printf("\n\n>>hs_build at depth=%d", depth);
+    printf("\n>>Current Rules:");
+    for (num = 0; num < ruleset->num; num++) {
+        printf ("\n>>%5dth Rule:", ruleset->ruleList[num].pri);
+        for (dim = 0; dim < DIM; dim++) {
+            printf (" [%-8x, %-8x]", ruleset->ruleList[num].range[dim][0], ruleset->ruleList[num].range[dim][1]);
+        }
+    }
 #endif /* DEBUG */
 
     if(ruleset->num <= tree->params.bucketSize) {
         goto LEAF;
     }
-	
+
     hightAvg = 2*ruleset->num + 1;
-	for (dim = 0; dim < DIM; dim ++) {
+    for (dim = 0; dim < DIM; dim ++) {
         seg_cnt = hs_gen_segs(currNode, &tree->aux, dim);
-	    struct range1d *r;	
+        struct range1d *r;	
         r = tree->aux.ranges_output;
 
 #ifdef	DEBUG
-		printf("\n>>dim[%d] segs: ", dim);
-		for (num = 0; num < seg_cnt; num++) {
-			printf ("[%u - %u] ", r[num].low, r[num].high);
-		}
+        printf("\n>>dim[%d] segs: ", dim);
+        for (num = 0; num < seg_cnt; num++) {
+            printf ("[%u - %u] ", r[num].low, r[num].high);
+        }
 #endif /* DEBUG */
-		if (seg_cnt >= 2) {
-			hightAll = 0;
-			for (i = 0; i < seg_cnt; i++) {
+        if (seg_cnt >= 2) {
+            hightAll = 0;
+            for (i = 0; i < seg_cnt; i++) {
                 r[i].cost = 0;
-				for (j = 0; j < ruleset->num; j++) {
-					if (ruleset->ruleList[j].range[dim][0] <= r[i].low \
-							&& ruleset->ruleList[j].range[dim][1] >= r[i].high) {
+                for (j = 0; j < ruleset->num; j++) {
+                    if (ruleset->ruleList[j].range[dim][0] <= r[i].low \
+                            && ruleset->ruleList[j].range[dim][1] >= r[i].high) {
                         r[i].cost ++;
-						hightAll++;
-					}
-				}
-			}
-			if (hightAvg > hightAll/seg_cnt) {	/* possible choice for d2s, pos-1 is the number of segs */
-				float hightSum = 0;
-				
-				/* select current dimension */
-				d2s = dim;
-				hightAvg = hightAll/seg_cnt;
-				
-				/* the first segment MUST belong to the left child */
-				hightSum += r[0].cost; 
+                        hightAll++;
+                    }
+                }
+            }
+            if (hightAvg > hightAll/seg_cnt) {	/* possible choice for d2s, pos-1 is the number of segs */
+                float hightSum = 0;
+
+                /* select current dimension */
+                d2s = dim;
+                hightAvg = hightAll/seg_cnt;
+
+                /* the first segment MUST belong to the left child */
+                hightSum += r[0].cost; 
 
                 if(seg_cnt > 2) {
                     for (num = 1; num < seg_cnt; num++) {
@@ -290,37 +290,37 @@ int	hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
                 } else {
                     thresh = r[0].high;
                 }
-				
-				/*printf("\n>>d2s=%u thresh=%x\n", d2s, thresh);*/
-				range[0][0] = r[0].low;
-				range[0][1] = thresh;
-				range[1][0] = thresh + 1;
-				range[1][1] = r[seg_cnt-1].high;
-			}
-			/* print segment list of each dim */
+
+                /*printf("\n>>d2s=%u thresh=%x\n", d2s, thresh);*/
+                range[0][0] = r[0].low;
+                range[0][1] = thresh;
+                range[1][0] = thresh + 1;
+                range[1][1] = r[seg_cnt-1].high;
+            }
+            /* print segment list of each dim */
 #ifdef	DEBUG
-			printf("\n>>hightAvg=%f, hightAll=%f, segs=%d", hightAll/seg_cnt, hightAll, seg_cnt);
-			for (num = 0; num < seg_cnt; num++) {
-				printf ("\nseg%5d[%8x, %8x](%u)	", 
-						num, r[num].low, r[num].high, r[num].cost);
-			}
+            printf("\n>>hightAvg=%f, hightAll=%f, segs=%d", hightAll/seg_cnt, hightAll, seg_cnt);
+            for (num = 0; num < seg_cnt; num++) {
+                printf ("\nseg%5d[%8x, %8x](%u)	", 
+                        num, r[num].low, r[num].high, r[num].cost);
+            }
 #endif /* DEBUG */
-		}
+        }
         if(max_seg_cnt < seg_cnt)
             max_seg_cnt = seg_cnt;
-	}
+    }
 
-	/*Update Leaf node*/
-	if (max_seg_cnt <= 1) {
+    /*Update Leaf node*/
+    if (max_seg_cnt <= 1) {
 LEAF:
-		currNode->depth = depth;
+        currNode->depth = depth;
         currNode->child_idx = UINT32_MAX;
-		
-		tree->tree_info.NumLeafNode ++;
+
+        tree->tree_info.NumLeafNode ++;
         tree->tree_info.RulePointers += ruleset->num;
 
-		if (tree->tree_info.WstDepth < depth)
-			tree->tree_info.WstDepth = depth;
+        if (tree->tree_info.WstDepth < depth)
+            tree->tree_info.WstDepth = depth;
 
         if (ruleset->num + depth > tree->tree_info.MaxLeafNum) {
             tree->tree_info.MaxLeafNum = ruleset->num + depth;
@@ -331,31 +331,31 @@ LEAF:
         if (ruleset->num > tree->tree_info.MaxRulesinLeaf) {
             tree->tree_info.MaxRulesinLeaf = ruleset->num;
         }
-		tree->tree_info.AvgDepth += depth;
+        tree->tree_info.AvgDepth += depth;
         return 0;
-	}
+    }
 
 #ifdef DEBUG
-	/* split info */
-	printf("\n>>d2s=%u; thresh=0x%8x, range0=[%8x, %8x], range1=[%8x, %8x]",
-			d2s, thresh, range[0][0], range[0][1], range[1][0], range[1][1]);
+    /* split info */
+    printf("\n>>d2s=%u; thresh=0x%8x, range0=[%8x, %8x], range1=[%8x, %8x]",
+            d2s, thresh, range[0][0], range[0][1], range[1][0], range[1][1]);
 #endif /* DEBUG */
 
-	if (range[1][0] > range[1][1]) {
-		printf("\n>>maxDiffSegPts=%d  range[1][0]=%x  range[1][1]=%x", 
-				max_seg_cnt, range[1][0], range[1][1]);
+    if (range[1][0] > range[1][1]) {
+        printf("\n>>maxDiffSegPts=%d  range[1][0]=%x  range[1][1]=%x", 
+                max_seg_cnt, range[1][0], range[1][1]);
         /* TODO: this path should be carefully considered */
-	    return -1;	
-	}
+        return -1;	
+    }
 
-	/*Update currNode*/	
+    /*Update currNode*/	
 
-	tree->tree_info.NumTreeNode ++;
-	currNode->d2s = (unsigned char) d2s;
-	currNode->depth = (unsigned char) depth;
-	currNode->thresh = thresh;
+    tree->tree_info.NumTreeNode ++;
+    currNode->d2s = (unsigned char) d2s;
+    currNode->depth = (unsigned char) depth;
+    currNode->thresh = thresh;
 
-	/* Binary split along d2s*/
+    /* Binary split along d2s*/
     /* allocate both left and right child */
     hs_node_t *child;
     child = hs_node_vec_get(&tree->aux.node_vec);
@@ -368,25 +368,25 @@ LEAF:
     currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
     ruleset = &currNode->ruleset;
 
-	/*Generate left child rule list*/
+    /*Generate left child rule list*/
     num = 0;
-	for (i = 0; i < ruleset->num; i++) {
-		if (ruleset->ruleList[i].range[d2s][0] <= range[0][1]
-		&&	ruleset->ruleList[i].range[d2s][1] >= range[0][0]) {
-			num++;
-		}
-	}
+    for (i = 0; i < ruleset->num; i++) {
+        if (ruleset->ruleList[i].range[d2s][0] <= range[0][1]
+                &&	ruleset->ruleList[i].range[d2s][1] >= range[0][0]) {
+            num++;
+        }
+    }
 
     child = hs_node_vec_at(&tree->aux.node_vec, child_idx); 
-	child->ruleset.num = num;
-	child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
+    child->ruleset.num = num;
+    child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
     if(child->ruleset.ruleList == NULL) {
         return -1;
     }
 
     j = 0;
-	for (i = 0; i < ruleset->num; i++) {
-		if (ruleset->ruleList[i].range[d2s][0] <= range[0][1]
+    for (i = 0; i < ruleset->num; i++) {
+        if (ruleset->ruleList[i].range[d2s][0] <= range[0][1]
                 &&	ruleset->ruleList[i].range[d2s][1] >= range[0][0]) {
             child->ruleset.ruleList[j] = ruleset->ruleList[i];
             /* in d2s dim, the search space needs to be trimmed off */
@@ -396,34 +396,34 @@ LEAF:
                 child->ruleset.ruleList[j].range[d2s][1] = range[0][1];
             j++;
         }
-	}
+    }
     remove_redund(&child->ruleset);
-	ret = hs_build(tree, child_idx, depth+1);
+    ret = hs_build(tree, child_idx, depth+1);
     if(ret < 0) return ret;
 
     /* hs_build may realloc node_vec, should get currNode again */
     currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
     ruleset = &currNode->ruleset;
-	/*Generate right child rule list*/
+    /*Generate right child rule list*/
     num = 0;
-	for (i = 0; i < ruleset->num; i++) {
-		if (ruleset->ruleList[i].range[d2s][0] <= range[1][1]
-		&&	ruleset->ruleList[i].range[d2s][1] >= range[1][0]) {
-			num++;
-		}
-	}
+    for (i = 0; i < ruleset->num; i++) {
+        if (ruleset->ruleList[i].range[d2s][0] <= range[1][1]
+                &&	ruleset->ruleList[i].range[d2s][1] >= range[1][0]) {
+            num++;
+        }
+    }
 
     child = hs_node_vec_at(&tree->aux.node_vec, child_idx + 1);
-	child->ruleset.num = num;
-	child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
+    child->ruleset.num = num;
+    child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
     if(child->ruleset.ruleList == NULL) {
         return -1;
     }
 
     j = 0;
-	for (i = 0; i < ruleset->num; i++) {
-		if (ruleset->ruleList[i].range[d2s][0] <= range[1][1]
-		&&	ruleset->ruleList[i].range[d2s][1] >= range[1][0]) {
+    for (i = 0; i < ruleset->num; i++) {
+        if (ruleset->ruleList[i].range[d2s][0] <= range[1][1]
+                &&	ruleset->ruleList[i].range[d2s][1] >= range[1][0]) {
             child->ruleset.ruleList[j] = ruleset->ruleList[i];
             /* in d2s dim, the search space needs to be trimmed off */
             if (child->ruleset.ruleList[j].range[d2s][0] < range[1][0])
@@ -432,9 +432,9 @@ LEAF:
                 child->ruleset.ruleList[j].range[d2s][1] = range[1][1];
             j++;
         }
-	}
+    }
     remove_redund(&child->ruleset);
-	ret = hs_build(tree, child_idx+1, depth+1);
+    ret = hs_build(tree, child_idx+1, depth+1);
     if(ret < 0) return ret;
 
     currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
@@ -482,7 +482,7 @@ int hs_build_tree(hs_tree_t *tree, rule_set_t *ruleset)
     int ret = hs_prep_build(tree, ruleset);
     if(ret == -1)
         return -1;
-    
+
     hs_node_t *root = hs_node_vec_get(&tree->aux.node_vec);
     root->ruleset = *ruleset;
 
