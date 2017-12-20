@@ -5,19 +5,22 @@ GCOV_OUTPUT = *.gcda *.gcno *.gcov
 CFLAGS = -g -Wall -Werror -O2
 
 .PHONY: all
-all: hs 
+all: libhs.a
 
 test: CFLAGS = -g -Wall -Werror -O2 $(GCOV_CCFLAGS)
-all: CFLAGS = -g -Wall -Werror -O2  
+all: CFLAGS = -g -Wall -Werror -O2 -DLIB 
 
 test: main.c hs.c utils.c heap.c mem.c
 	$(CC) $(CFLAGS) -o $@ $^
-	./test -r acl1
-	gcov hs.c
+	#./test -r fw1K
+	#gcov hs.c
 
-hs: hs.c utils.c heap.c mem.c
+*.o: *.c
 	$(CC) $(CFLAGS) -o $@ $^
+
+libhs.a: hs.o utils.o heap.o mem.o
+	$(AR) rvs $@ $^
 
 
 clean:
-	rm -f hs test $(GCOV_OUTPUT)
+	rm -f libhs.a test *.o $(GCOV_OUTPUT)

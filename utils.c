@@ -44,6 +44,7 @@ int rule_contained(rule_t *a, rule_t *b)
 }
 
 #ifndef LIB
+#include "utils-inl.h"
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  ReadIPRange
