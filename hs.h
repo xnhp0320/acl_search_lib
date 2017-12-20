@@ -71,6 +71,7 @@ int hs_build(hs_tree_t* ruleset, unsigned int idx, unsigned int depth); /* main 
 int hs_build_tree(hs_tree_t *tree, rule_set_t *ruleset);
 void hs_tree_info(hs_tree_t *tree);
 int hs_lookup(hs_tree_t *tree, hs_key_t *hs_key);
+void hs_free_all(hs_tree_t *tree);
 
 static inline int linear_search(rule_set_t *ruleset, hs_key_t *key)
 {

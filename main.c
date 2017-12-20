@@ -1,3 +1,4 @@
+#ifndef LIB
 #include "hs.h" 
 #include "utils.h"
 #include <unistd.h>
@@ -190,5 +191,7 @@ int main(int argc, char *argv[])
         printf("speed %.2fMpps\n", (1e9/((double)nano/cnt))/1e6);
     }
 #endif
+    hs_free_all(&tree);
     return ret;
 }
+#endif

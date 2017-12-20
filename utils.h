@@ -49,5 +49,11 @@ void	ReadPort(FILE* fp, unsigned int* from, unsigned int* to);
 void    ReadProtocol(FILE* fp, unsigned int* from, unsigned int* to);
 int rule_contained(rule_t *a, rule_t *b);
 
+/* ruleset management */
+int  rule_set_init(rule_set_t *ruleset);
+int  rule_set_add(rule_set_t *ruleset, rule_t *rule);
+int  rule_set_del(rule_set_t *ruleset, rule_t *rule);
+void rule_set_free(rule_set_t *ruleset);
+
 
 #endif

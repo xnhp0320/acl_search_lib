@@ -8,10 +8,11 @@
 #include "hs.h"
 #include "heap.h"
 #include "param.h"
+#include "mem.h"
 
 static int hs_node_vec_init(struct hs_node_vec *vec, size_t size)
 {
-    vec->hs_nodes = (hs_node_t*)calloc(size, sizeof(hs_node_t));
+    vec->hs_nodes = (hs_node_t*)hs_calloc(size, sizeof(hs_node_t));
     if(!vec->hs_nodes) 
         return -1;
     vec->cap  = size;
@@ -21,7 +22,7 @@ static int hs_node_vec_init(struct hs_node_vec *vec, size_t size)
 
 static void hs_node_vec_uinit(struct hs_node_vec *vec)
 {
-    free(vec->hs_nodes);
+    hs_free(vec->hs_nodes);
     vec->cap = 0;
     vec->len = 0;
 }
@@ -31,7 +32,7 @@ static hs_node_t * hs_node_vec_get(struct hs_node_vec *vec)
     if(vec->len < vec->cap)
         return &(vec->hs_nodes[vec->len++]);
     else {
-        vec->hs_nodes = realloc(vec->hs_nodes, vec->cap * 2 * sizeof(hs_node_t));
+        vec->hs_nodes = hs_realloc(vec->hs_nodes, vec->cap * 2 * sizeof(hs_node_t));
         if(vec->hs_nodes){
             vec->cap *= 2;
             return &(vec->hs_nodes[vec->len ++]);
@@ -61,6 +62,8 @@ static int __uint_compare(
 static int hs_prep_build(hs_tree_t *tree, rule_set_t *ruleset)
 {
     int ret;
+    tree->ruleset = *ruleset;
+
     memset(&tree->tree_info, 0, sizeof(tree_info_t));
     ret = hs_node_vec_init(&tree->aux.node_vec, 16);
     if(ret == -1) { 
@@ -68,17 +71,17 @@ static int hs_prep_build(hs_tree_t *tree, rule_set_t *ruleset)
     }
 
     tree->aux.ranges_output = \
-                    (struct range1d *)calloc(ruleset->num * 2, sizeof(struct range1d));
+                    (struct range1d *)hs_calloc(ruleset->num * 2, sizeof(struct range1d));
     if(!tree->aux.ranges_output) {
         hs_node_vec_uinit(&tree->aux.node_vec);
         return -1;
     }
 
     tree->aux.ranges_sort = \
-                    (struct range1d *)calloc(ruleset->num, sizeof(struct range1d));
+                    (struct range1d *)hs_calloc(ruleset->num, sizeof(struct range1d));
     if(!tree->aux.ranges_sort) {
         hs_node_vec_uinit(&tree->aux.node_vec);
-        free(tree->aux.ranges_output);
+        hs_free(tree->aux.ranges_output);
         tree->aux.ranges_output = NULL;
         return -1;
     }
@@ -86,8 +89,8 @@ static int hs_prep_build(hs_tree_t *tree, rule_set_t *ruleset)
     tree->aux.heap = heap_new(__uint_compare, NULL);
     if(!tree->aux.heap) {
         hs_node_vec_uinit(&tree->aux.node_vec);
-        free(tree->aux.ranges_output);
-        free(tree->aux.ranges_sort);
+        hs_free(tree->aux.ranges_output);
+        hs_free(tree->aux.ranges_sort);
         tree->aux.ranges_output = NULL;
         tree->aux.ranges_sort = NULL;
         return -1;
@@ -147,6 +150,11 @@ static unsigned int hs_gen_segs(hs_node_t *node, hs_build_aux_t *aux, int dim)
     struct range1d *rout = aux->ranges_output;
     unsigned long top;
     unsigned int seg_cnt = 0;
+
+    /* because the heap may contain duplicated high value, 
+     * so each time we have to check if start <= top to form 
+     * a new segment.
+     */
 
     i = 1;
     for(; i < uniq_num; i ++) {
@@ -371,7 +379,7 @@ LEAF:
 
     child = hs_node_vec_at(&tree->aux.node_vec, child_idx); 
 	child->ruleset.num = num;
-	child->ruleset.ruleList = (rule_t*) malloc( child->ruleset.num * sizeof(rule_t) );
+	child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
     if(child->ruleset.ruleList == NULL) {
         return -1;
     }
@@ -407,7 +415,7 @@ LEAF:
 
     child = hs_node_vec_at(&tree->aux.node_vec, child_idx + 1);
 	child->ruleset.num = num;
-	child->ruleset.ruleList = (rule_t*) malloc( child->ruleset.num * sizeof(rule_t) );
+	child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
     if(child->ruleset.ruleList == NULL) {
         return -1;
     }
@@ -434,7 +442,7 @@ LEAF:
     if(idx != 0) {
         /* keep the root rulesets */
         ruleset = &currNode->ruleset;
-        free(ruleset->ruleList);
+        hs_free(ruleset->ruleList);
         ruleset->num = 0;
         ruleset->ruleList = NULL;
     }
@@ -446,15 +454,21 @@ void hs_free_all(hs_tree_t *tree)
 {
     int i;
     hs_node_t *n;
-    for(i = 0; i < tree->aux.node_vec.len; i++) {
+    /* the root ruleset is a pointer pointing to the 
+     * original ruleset
+     */
+    for(i = 1; i < tree->aux.node_vec.len; i++) {
         n = &tree->aux.node_vec.hs_nodes[i];
         if(n->ruleset.num != 0) {
-            free(n->ruleset.ruleList);
+            hs_free(n->ruleset.ruleList);
         }
+        n->ruleset.ruleList = NULL;
+        n->ruleset.num = 0;
     }
+
     hs_node_vec_uinit(&tree->aux.node_vec);
-    free(&tree->aux.ranges_output);
-    free(&tree->aux.ranges_sort);
+    hs_free(tree->aux.ranges_output);
+    hs_free(tree->aux.ranges_sort);
     tree->aux.ranges_output = NULL;
     tree->aux.ranges_sort = NULL;
 

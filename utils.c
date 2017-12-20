@@ -3,6 +3,47 @@
 #include <string.h>
 #include "utils.h"
 
+int _rule_pri_compare(const void *a, const void *b)
+{
+    const rule_t *r1 = (const rule_t *)a;
+    const rule_t *r2 = (const rule_t *)b;
+    if(r1->pri < r2->pri)
+        return -1;
+    else if(r1->pri > r2->pri)
+        return 1;
+    return 0;
+}
+
+void show_ruleset(rule_set_t *ruleset)
+{ 
+    int num;
+    int dim;
+    for (num = 0; num < ruleset->num; num++) {
+        printf (">>%5dth Rule:", ruleset->ruleList[num].pri);
+        for (dim = 0; dim < DIM; dim++) {
+            printf (" [%-8x, %-8x]", ruleset->ruleList[num].range[dim][0], ruleset->ruleList[num].range[dim][1]);
+        }
+        printf("\n");
+    }
+}
+
+/* a contains b */
+int rule_contained(rule_t *a, rule_t *b)
+{
+    int i;
+    int count = 0;
+    for (i = 0; i < DIM; i++) {
+        if(a->range[i][0] <= b->range[i][0]
+                 && a->range[i][1]>= b->range[i][1])
+            count ++;
+    }
+    if(count == DIM) 
+        return 1;
+    else 
+        return 0;
+}
+
+#ifndef LIB
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  ReadIPRange
@@ -185,30 +226,6 @@ void LoadFilters(FILE *fp, struct FILTSET *filtset)
 	}
 }
 
-int _rule_pri_compare(const void *a, const void *b)
-{
-    const rule_t *r1 = (const rule_t *)a;
-    const rule_t *r2 = (const rule_t *)b;
-    if(r1->pri < r2->pri)
-        return -1;
-    else if(r1->pri > r2->pri)
-        return 1;
-    return 0;
-}
-
-void show_ruleset(rule_set_t *ruleset)
-{ 
-    int num;
-    int dim;
-    for (num = 0; num < ruleset->num; num++) {
-        printf (">>%5dth Rule:", ruleset->ruleList[num].pri);
-        for (dim = 0; dim < DIM; dim++) {
-            printf (" [%-8x, %-8x]", ruleset->ruleList[num].range[dim][0], ruleset->ruleList[num].range[dim][1]);
-        }
-        printf("\n");
-    }
-}
-
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:	ReadFilterFile
@@ -227,7 +244,7 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
 	if (fp == NULL) 
 	{
 		printf("Couldnt open filter set file \n");
-		return	-1;
+        exit(-1);
 	}
 
 	LoadFilters(fp, &filtset);	
@@ -253,21 +270,26 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
 
 	return	0;
 }
+#endif
 
-/* a contains b */
-int rule_contained(rule_t *a, rule_t *b)
+
+int rule_set_init(rule_set_t *ruleset)
 {
-    int i;
-    int count = 0;
-    for (i = 0; i < DIM; i++) {
-        if(a->range[i][0] <= b->range[i][0]
-                 && a->range[i][1]>= b->range[i][1])
-            count ++;
-    }
-    if(count == DIM) 
-        return 1;
-    else 
-        return 0;
+    return 0;
+}
+
+int rule_set_add(rule_set_t *ruleset, rule_t *rule)
+{
+    return 0;
+}
+
+int rule_set_del(rule_set_t *ruleset, rule_t *rule)
+{
+    return 0;
+}
+
+void rule_set_free(rule_set_t *ruleset)
+{
 }
 
 

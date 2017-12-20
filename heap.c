@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "heap.h"
+#include "mem.h"
 
 #define DEFAULT_CAPACITY 256
 
@@ -58,7 +59,7 @@ heap_t *heap_new(int (*cmp) (const void *,
                              const void *udata),
                  const void *udata)
 {
-    heap_t *h = malloc(heap_sizeof(DEFAULT_CAPACITY));
+    heap_t *h = hs_malloc(heap_sizeof(DEFAULT_CAPACITY));
 
     if (!h)
         return NULL;
@@ -70,7 +71,7 @@ heap_t *heap_new(int (*cmp) (const void *,
 
 void heap_free(heap_t * h)
 {
-    free(h);
+    hs_free(h);
 }
 
 /**
@@ -82,7 +83,7 @@ static heap_t* __ensurecapacity(heap_t * h)
 
     h->size *= 2;
 
-    return realloc(h, heap_sizeof(h->size));
+    return hs_realloc(h, heap_sizeof(h->size));
 }
 
 static void __swap(heap_t * h, const int i1, const int i2)
