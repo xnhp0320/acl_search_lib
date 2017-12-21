@@ -1,6 +1,5 @@
 #ifndef LIB
 #include "hs.h" 
-#include "utils.h"
 #include "utils-inl.h"
 #include <unistd.h>
 #include <string.h>
@@ -176,7 +175,7 @@ int main(int argc, char *argv[])
         CLOCK_GETTIME(&tp_b);
         for(i = 0; i < cnt; i ++) {
             pri = hs_lookup(&tree, &keys[i]);
-#if 0
+#if 1
             pri ++;
 #else
             int lpri = linear_search(&ruleset, &keys[i]);

@@ -217,7 +217,7 @@ static void remove_redund(rule_set_t *ruleset)
 }
 
 
-int	hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
+int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
 {
     /* generate segments for input filtset */
     unsigned int	dim, num, seg_cnt;

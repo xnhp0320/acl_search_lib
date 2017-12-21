@@ -1,7 +1,7 @@
 /* functions for ruleset file parsing */
 #include <stdlib.h>
 #include <string.h>
-#include "utils.h"
+#include "rule.h"
 
 int _rule_pri_compare(const void *a, const void *b)
 {
@@ -272,25 +272,5 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
     return	0;
 }
 #endif
-
-
-int rule_set_init(rule_set_t *ruleset)
-{
-    return 0;
-}
-
-int rule_set_add(rule_set_t *ruleset, rule_t *rule)
-{
-    return 0;
-}
-
-int rule_set_del(rule_set_t *ruleset, rule_t *rule)
-{
-    return 0;
-}
-
-void rule_set_free(rule_set_t *ruleset)
-{
-}
 
 

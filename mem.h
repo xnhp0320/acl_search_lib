@@ -5,12 +5,11 @@
 /* these are weak symbols, can be override by 
  * user 
  */
+#include <stdlib.h>
+
 void *hs_calloc(size_t, size_t);
 void *hs_realloc(void *, size_t);
 void  hs_free(void*);
 void *hs_malloc(size_t size);
-
-
-
 
 #endif

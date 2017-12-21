@@ -1,6 +1,6 @@
 #ifndef __UTILS_INL_H__
 #define __UTILS_INL_H__
-#include "utils.h"
+#include "rule.h"
 
 #define MAXFILTERS	65535 /* support 64K rules */	
 struct FILTER						

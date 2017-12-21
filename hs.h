@@ -2,7 +2,7 @@
 #define  _HS_H
 
 #include "param.h"
-#include "utils.h"
+#include "rule.h"
 
 //#define DEBUG
 

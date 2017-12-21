@@ -2,7 +2,7 @@ CC     = gcc
 GCOV_CCFLAGS = -fprofile-arcs -ftest-coverage
 GCOV_OUTPUT = *.gcda *.gcno *.gcov 
 
-CFLAGS = -g -Wall -Werror -O2
+#CFLAGS = -g -Wall -Werror -O2
 
 .PHONY: all
 all: libhs.a
@@ -10,7 +10,7 @@ all: libhs.a
 test: CFLAGS = -g -Wall -Werror -O2 $(GCOV_CCFLAGS)
 all: CFLAGS = -g -Wall -Werror -O2 -DLIB 
 
-test: main.c hs.c utils.c heap.c mem.c
+test: main.o hs.o utils.o heap.o mem.o rule.o
 	$(CC) $(CFLAGS) -o $@ $^
 	#./test -r fw1K
 	#gcov hs.c
@@ -18,7 +18,7 @@ test: main.c hs.c utils.c heap.c mem.c
 *.o: *.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-libhs.a: hs.o utils.o heap.o mem.o
+libhs.a: hs.o utils.o heap.o mem.o rule.o
 	$(AR) rvs $@ $^
 
 
