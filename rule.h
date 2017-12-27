@@ -41,7 +41,7 @@ typedef struct hs_acl_ctx_s
     rule_set_slice_t rs_slice;
 } hs_acl_ctx_t;
 
-int hs_acl_ctx_init(hs_acl_ctx_t *acl_ctx);
+int hs_acl_ctx_init(hs_acl_ctx_t *acl_ctx, size_t size);
 void hs_acl_ctx_free(hs_acl_ctx_t *acl_ctx);
 int  hs_rule_add(hs_acl_ctx_t *ctx, rule_t *rule);
 int  hs_rule_del(hs_acl_ctx_t *ctx, rule_t *rule);

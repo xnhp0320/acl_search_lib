@@ -5,14 +5,14 @@
 #define HS_ACL_SIZE 201 
 
 
-int hs_acl_ctx_init(hs_acl_ctx_t *ctx)
+int hs_acl_ctx_init(hs_acl_ctx_t *ctx, size_t size)
 {
     ctx->rs_slice.len = 0;
-    ctx->rs_slice.ruleList = hs_calloc(HS_ACL_SIZE, sizeof(rule_t));
+    ctx->rs_slice.ruleList = hs_calloc(size, sizeof(rule_t));
     if(!ctx->rs_slice.ruleList) {
         return -1;
     }
-    ctx->rs_slice.cap = HS_ACL_SIZE;
+    ctx->rs_slice.cap = size;
     return 0;
 }
 
@@ -89,14 +89,18 @@ int hs_rule_add(hs_acl_ctx_t *ctx, rule_t *rule)
             return ret;
     }
 
-    int idx = upper_bound(&ctx->rs_slice, rule);
-    if(idx != ctx->rs_slice.len) { 
-        /* move [idx, tail] -> [idx+1, tail+1] */ 
-        memmove(ctx->rs_slice.ruleList + idx, \
-                ctx->rs_slice.ruleList + idx + 1,\
-                (ctx->rs_slice.len - idx - 1) * sizeof(rule_t));
+    int idx = 0;
+    if(ctx->rs_slice.len != 0) {
+        idx = upper_bound(&ctx->rs_slice, rule);
+        if(idx != ctx->rs_slice.len) { 
+            /* move [idx, tail] -> [idx+1, tail+1] */ 
+            memmove(ctx->rs_slice.ruleList + idx + 1, \
+                    ctx->rs_slice.ruleList + idx,\
+                    (ctx->rs_slice.len - idx) * sizeof(rule_t));
+        }
     }
     ctx->rs_slice.ruleList[idx] = *rule;
+    ctx->rs_slice.len ++;
     return 0;
 }
 
@@ -112,10 +116,11 @@ static int rule_is_equal(rule_t *r1, rule_t *r2)
     return count == DIM;
 }
 
-int hs_rule_del(hs_acl_ctx_t *ctx, rule_t *rule)
+static
+int hs_rule_del_with_pri(hs_acl_ctx_t *ctx, rule_t *rule)
 {
     int idx = upper_bound(&ctx->rs_slice, rule);
-    if(idx == 0 || idx == ctx->rs_slice.len) {
+    if(idx == 0) {
         return HS_RULE_NOT_FOUND;
     }
 
@@ -126,12 +131,35 @@ int hs_rule_del(hs_acl_ctx_t *ctx, rule_t *rule)
             memmove(&ctx->rs_slice.ruleList[i], \
                     &ctx->rs_slice.ruleList[i+1], 
                     (ctx->rs_slice.len - i -1) *sizeof(rule_t));
+
+            ctx->rs_slice.len --;
             return 0;
         }
     }
     return HS_RULE_NOT_FOUND;
 }
 
+int hs_rule_del(hs_acl_ctx_t *ctx, rule_t *rule)
+{
+    if(rule->pri != UINT32_MAX) {
+        return hs_rule_del_with_pri(ctx, rule);
+    } 
+
+    int i;
+    for(i = 0; i < ctx->rs_slice.len; i ++) {
+        if(rule_is_equal(&ctx->rs_slice.ruleList[i], \
+                    rule)) {
+            memmove(&ctx->rs_slice.ruleList[i], \
+                    &ctx->rs_slice.ruleList[i+1], 
+                    (ctx->rs_slice.len - i -1) *sizeof(rule_t));
+
+            ctx->rs_slice.len --;
+            return 0;
+        }
+    }
+
+    return HS_RULE_NOT_FOUND;
+}
 
 
 

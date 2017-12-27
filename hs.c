@@ -454,8 +454,8 @@ void hs_free_all(hs_tree_t *tree)
 {
     int i;
     hs_node_t *n;
-    /* the root ruleset is a pointer pointing to the 
-     * original ruleset
+    /* the ruleset in the root node is a pointer pointing to the 
+     * original ruleset, should be freed by hs_acl_ctx_free
      */
     for(i = 1; i < tree->aux.node_vec.len; i++) {
         n = &tree->aux.node_vec.hs_nodes[i];
