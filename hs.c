@@ -59,42 +59,59 @@ static int __uint_compare(
     return 0;
 }
 
-static int hs_prep_build(hs_tree_t *tree, rule_set_t *ruleset)
+int hs_build_aux_init(hs_build_aux_t *aux, int size)
+{
+    aux->ranges_output = \
+                         (struct range1d *)hs_calloc(size*2, sizeof(struct range1d));
+    if(!aux->ranges_output) {
+        return -1;
+    }
+
+    aux->ranges_sort = \
+                       (struct range1d *)hs_calloc(size, sizeof(struct range1d));
+    if(!aux->ranges_sort) {
+        hs_free(aux->ranges_output);
+        aux->ranges_output = NULL;
+        return -1;
+    }
+
+    aux->heap = heap_new(__uint_compare, NULL);
+    if(!aux->heap) {
+        hs_free(aux->ranges_output);
+        hs_free(aux->ranges_sort);
+        aux->ranges_output = NULL;
+        aux->ranges_sort = NULL;
+        return -1;
+    }
+    return 0;
+}
+
+static int hs_prep_build(hs_tree_t *tree, hs_build_aux_t *aux, rule_set_t *ruleset)
 {
     int ret;
     tree->ruleset = *ruleset;
 
     memset(&tree->tree_info, 0, sizeof(tree_info_t));
-    ret = hs_node_vec_init(&tree->aux.node_vec, 16);
+    ret = hs_node_vec_init(&tree->node_vec, 16);
     if(ret == -1) { 
         return -1;
     }
 
-    tree->aux.ranges_output = \
-                              (struct range1d *)hs_calloc(ruleset->num * 2, sizeof(struct range1d));
-    if(!tree->aux.ranges_output) {
-        hs_node_vec_uinit(&tree->aux.node_vec);
-        return -1;
-    }
+    if(aux == NULL) {
+        aux = hs_calloc(1, sizeof(hs_build_aux_t));
+        if(!aux) {
+            hs_node_vec_uinit(&tree->node_vec);
+            return -1;
+        }
+        ret = hs_build_aux_init(aux, ruleset->num);
+        if(ret == -1) {
+            hs_free(aux);
+            hs_node_vec_uinit(&tree->node_vec);
+            return -1;
+        }
+    } 
 
-    tree->aux.ranges_sort = \
-                            (struct range1d *)hs_calloc(ruleset->num, sizeof(struct range1d));
-    if(!tree->aux.ranges_sort) {
-        hs_node_vec_uinit(&tree->aux.node_vec);
-        hs_free(tree->aux.ranges_output);
-        tree->aux.ranges_output = NULL;
-        return -1;
-    }
-
-    tree->aux.heap = heap_new(__uint_compare, NULL);
-    if(!tree->aux.heap) {
-        hs_node_vec_uinit(&tree->aux.node_vec);
-        hs_free(tree->aux.ranges_output);
-        hs_free(tree->aux.ranges_sort);
-        tree->aux.ranges_output = NULL;
-        tree->aux.ranges_sort = NULL;
-        return -1;
-    }
+    tree->aux = aux;
     return 0;
 }
 
@@ -227,7 +244,7 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
     unsigned int	thresh = 0;
     unsigned int	range[2][2] = {{0, 0}, {0, 0}};     /* sub-space ranges for child-nodes */
     float			hightAvg, hightAll;
-    hs_node_t*      currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
+    hs_node_t*      currNode = hs_node_vec_at(&tree->node_vec, idx);
     rule_set_t      *ruleset = &currNode->ruleset;
 
 #ifdef	DEBUG
@@ -247,9 +264,9 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
 
     hightAvg = 2*ruleset->num + 1;
     for (dim = 0; dim < DIM; dim ++) {
-        seg_cnt = hs_gen_segs(currNode, &tree->aux, dim);
+        seg_cnt = hs_gen_segs(currNode, tree->aux, dim);
         struct range1d *r;	
-        r = tree->aux.ranges_output;
+        r = tree->aux->ranges_output;
 
 #ifdef	DEBUG
         printf("\n>>dim[%d] segs: ", dim);
@@ -358,14 +375,14 @@ LEAF:
     /* Binary split along d2s*/
     /* allocate both left and right child */
     hs_node_t *child;
-    child = hs_node_vec_get(&tree->aux.node_vec);
+    child = hs_node_vec_get(&tree->node_vec);
     if(child == NULL)
         return -1;
-    unsigned int child_idx = tree->aux.node_vec.len -1;
-    if(hs_node_vec_get(&tree->aux.node_vec) == NULL)
+    unsigned int child_idx = tree->node_vec.len -1;
+    if(hs_node_vec_get(&tree->node_vec) == NULL)
         return -1;
 
-    currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
+    currNode = hs_node_vec_at(&tree->node_vec, idx);
     ruleset = &currNode->ruleset;
 
     /*Generate left child rule list*/
@@ -377,7 +394,7 @@ LEAF:
         }
     }
 
-    child = hs_node_vec_at(&tree->aux.node_vec, child_idx); 
+    child = hs_node_vec_at(&tree->node_vec, child_idx); 
     child->ruleset.num = num;
     child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
     if(child->ruleset.ruleList == NULL) {
@@ -402,7 +419,7 @@ LEAF:
     if(ret < 0) return ret;
 
     /* hs_build may realloc node_vec, should get currNode again */
-    currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
+    currNode = hs_node_vec_at(&tree->node_vec, idx);
     ruleset = &currNode->ruleset;
     /*Generate right child rule list*/
     num = 0;
@@ -413,7 +430,7 @@ LEAF:
         }
     }
 
-    child = hs_node_vec_at(&tree->aux.node_vec, child_idx + 1);
+    child = hs_node_vec_at(&tree->node_vec, child_idx + 1);
     child->ruleset.num = num;
     child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
     if(child->ruleset.ruleList == NULL) {
@@ -437,7 +454,7 @@ LEAF:
     ret = hs_build(tree, child_idx+1, depth+1);
     if(ret < 0) return ret;
 
-    currNode = hs_node_vec_at(&tree->aux.node_vec, idx);
+    currNode = hs_node_vec_at(&tree->node_vec, idx);
     currNode->child_idx = child_idx;
     if(idx != 0) {
         /* keep the root rulesets */
@@ -457,8 +474,8 @@ void hs_free_all(hs_tree_t *tree)
     /* the ruleset in the root node is a pointer pointing to the 
      * original ruleset, should be freed by hs_acl_ctx_free
      */
-    for(i = 1; i < tree->aux.node_vec.len; i++) {
-        n = &tree->aux.node_vec.hs_nodes[i];
+    for(i = 1; i < tree->node_vec.len; i++) {
+        n = &tree->node_vec.hs_nodes[i];
         if(n->ruleset.num != 0) {
             hs_free(n->ruleset.ruleList);
         }
@@ -466,24 +483,21 @@ void hs_free_all(hs_tree_t *tree)
         n->ruleset.num = 0;
     }
 
-    hs_node_vec_uinit(&tree->aux.node_vec);
-    hs_free(tree->aux.ranges_output);
-    hs_free(tree->aux.ranges_sort);
-    tree->aux.ranges_output = NULL;
-    tree->aux.ranges_sort = NULL;
+    hs_node_vec_uinit(&tree->node_vec);
 
+    tree->aux = NULL;
     tree->ruleset.num = 0;
     tree->ruleset.ruleList = NULL;
     tree->root = NULL;
 }
 
-int hs_build_tree(hs_tree_t *tree, rule_set_t *ruleset)
+int hs_build_tree(hs_tree_t *tree, hs_build_aux_t *aux, rule_set_t *ruleset)
 {
-    int ret = hs_prep_build(tree, ruleset);
+    int ret = hs_prep_build(tree, aux, ruleset);
     if(ret == -1)
         return -1;
 
-    hs_node_t *root = hs_node_vec_get(&tree->aux.node_vec);
+    hs_node_t *root = hs_node_vec_get(&tree->node_vec);
     root->ruleset = *ruleset;
 
     ret = hs_build(tree, 0, 0); 
@@ -492,7 +506,7 @@ int hs_build_tree(hs_tree_t *tree, rule_set_t *ruleset)
         return ret;
     }
     /* root may change because of realloc in node_vec */
-    tree->root = tree->aux.node_vec.hs_nodes;
+    tree->root = tree->node_vec.hs_nodes;
     return 0;
 }
 
@@ -519,9 +533,9 @@ int hs_lookup(hs_tree_t *tree, hs_key_t *hs_key)
     int pri;
     while(n->child_idx != UINT32_MAX) {
         if(hs_key->key[n->d2s] <= n->thresh) {
-            n = hs_node_vec_at(&tree->aux.node_vec, n->child_idx);
+            n = hs_node_vec_at(&tree->node_vec, n->child_idx);
         } else {
-            n = hs_node_vec_at(&tree->aux.node_vec, n->child_idx +1);
+            n = hs_node_vec_at(&tree->node_vec, n->child_idx +1);
         }
     }
     pri = linear_search(&n->ruleset, hs_key);

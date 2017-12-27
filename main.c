@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     struct timespec tp_a;
 
     CLOCK_GETTIME(&tp_b);
-    ret = hs_build_tree(&tree, &ruleset);
+    ret = hs_build_tree(&tree, NULL, &ruleset);
     CLOCK_GETTIME(&tp_a);
     printf("Tree Building Time:\n");
     long nano = (tp_a.tv_nsec > tp_b.tv_nsec) ? (tp_a.tv_nsec -tp_b.tv_nsec) : (tp_a.tv_nsec - tp_b.tv_nsec + 1000000000ULL);
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
     }
     hs_tree_info(&tree);
 
-    //#define SAMPLE
+#define SAMPLE
 #ifdef SAMPLE
     hs_key_t *keys = sample_rules(&ruleset, 100);
 
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     CLOCK_GETTIME(&tp_b);
     for(i = 0; i < ruleset.num * 100; i ++) {
         pri = hs_lookup(&tree, &keys[i]);
-#if 1
+#if 0
         pri ++;
 #else
         int lpri = linear_search(&ruleset, &keys[i]);
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     printf("speed %.2fMpps\n", (1e9/((double)nano/(ruleset.num * 100)))/1e6);
 #endif
 
-#define TRACE
+//#define TRACE
 #ifdef TRACE
     hs_key_t *keys = calloc(1000000, sizeof(hs_key_t));
     int cnt = 0;

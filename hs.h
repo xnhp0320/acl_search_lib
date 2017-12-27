@@ -47,7 +47,6 @@ struct hs_node_vec {
 };
 
 typedef struct hs_build_aux {
-    struct hs_node_vec node_vec;
     struct range1d * ranges_output;
     struct range1d * ranges_sort;
     heap_t *heap;
@@ -55,7 +54,8 @@ typedef struct hs_build_aux {
 
 
 typedef struct hs_tree_s {
-    hs_build_aux_t aux;
+    hs_build_aux_t *aux;
+    struct hs_node_vec node_vec;
     hs_node_t *root;
     tree_info_t tree_info;
     rule_set_t ruleset;
@@ -68,7 +68,7 @@ typedef struct hs_key_s {
 
 /* build hyper-split-tree */
 int hs_build(hs_tree_t* ruleset, unsigned int idx, unsigned int depth); /* main */
-int hs_build_tree(hs_tree_t *tree, rule_set_t *ruleset);
+int hs_build_tree(hs_tree_t *tree, hs_build_aux_t *aux, rule_set_t *ruleset);
 void hs_tree_info(hs_tree_t *tree);
 int hs_lookup(hs_tree_t *tree, hs_key_t *hs_key);
 void hs_free_all(hs_tree_t *tree);
