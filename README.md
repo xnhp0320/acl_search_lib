@@ -2,7 +2,7 @@
 
 This is a rewrite for the HyperSplit packet classification algorithm. It can be used as a lib for IPv4 based 
 five tuples or three tuples acl matching. HyperSplit is one of the best packet algorithms. It has faster lookup speed 
-as well as small memory size compared to the DPDK ACL algorithm.
+as well as smaller memory size compared to the DPDK ACL algorithm.
 
 The public available code for the HyperSplit algorithm has some minor issues:  
 
@@ -15,3 +15,5 @@ The public available code for the HyperSplit algorithm has some minor issues:
 This has been fixed in the current version. I checked that sometimes this technique can save up to 10x memory. 
 
 
+Therefore I decide to rewrite HyperSplit code for a robust implementation. 
+Feel free to drop an email to xnhp0320@gmail.com if you have any question about the implementation.
