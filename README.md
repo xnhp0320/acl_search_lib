@@ -16,4 +16,4 @@ This has been fixed in the current version. I checked that sometimes this techni
 
 
 Therefore I decide to rewrite HyperSplit code for a robust implementation. 
-Feel free to drop an email to xnhp0320@gmail.com if you have any question about the implementation.
+Feel free to drop an email to hepeng@ict.ac.cn if you have any question about the implementation.
