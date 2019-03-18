@@ -6,7 +6,7 @@
 struct FILTER						
 {
     unsigned int cost;		
-    unsigned int dim[DIM][2];
+    unsigned int dim[HS_DIM][2];
     unsigned char act;	
 };
 

@@ -1,5 +1,5 @@
 CC     = gcc
-GCOV_CCFLAGS = -fprofile-arcs -ftest-coverage
+#GCOV_CCFLAGS = -fprofile-arcs -ftest-coverage
 GCOV_OUTPUT = *.gcda *.gcno *.gcov 
 
 #CFLAGS = -g -Wall -Werror -O2

@@ -73,7 +73,7 @@ hs_key_t *sample_rules(rule_set_t *ruleset, int samples_cnt)
     for(i = 0; i < ruleset->num; i ++) {
         rule_t * r = &(ruleset->ruleList[i]);
         for(j = 0; j < samples_cnt; j ++) {
-            for(k = 0; k < DIM; k ++) {
+            for(k = 0; k < HS_DIM; k ++) {
                 key[i * samples_cnt + j].key[k] = \
                                                   rand() % ((unsigned long)r->range[k][1] - r->range[k][0] + 1ULL) + r->range[k][0];
             }
@@ -141,7 +141,7 @@ int main(int argc, char *argv[])
     CLOCK_GETTIME(&tp_b);
     for(i = 0; i < ruleset.num * 100; i ++) {
         pri = hs_lookup(&tree, &keys[i]);
-#if 0
+#if 1
         pri ++;
 #else
         int lpri = linear_search(&ruleset, &keys[i]);

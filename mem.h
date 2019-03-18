@@ -2,8 +2,8 @@
 #define __MEM_H__
 
 /* memory management */
-/* these are weak symbols, can be override by 
- * user 
+/* these are weak symbols, can be override by
+ * user
  */
 #include <stdlib.h>
 

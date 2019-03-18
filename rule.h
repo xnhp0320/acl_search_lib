@@ -10,8 +10,9 @@
 
 typedef	struct rule_s
 {
+    void *          entry;
 	unsigned int	pri;
-	unsigned int	range[DIM][2];
+	unsigned int	range[HS_DIM][2];
 } rule_t;
 
 typedef struct rule_set_s
@@ -26,8 +27,10 @@ typedef struct rule_set_s
  *  function declaration
  *-----------------------------------------------------------------------------*/
 
+typedef void (*hs_del_func)(rule_t *r, void *userdata);
 
 int rule_contained(rule_t *a, rule_t *b);
+void show_ruleset(rule_set_t *ruleset);
 
 typedef struct rule_set_slice_s
 {
@@ -44,12 +47,17 @@ typedef struct hs_acl_ctx_s
 int hs_acl_ctx_init(hs_acl_ctx_t *acl_ctx, size_t size);
 void hs_acl_ctx_free(hs_acl_ctx_t *acl_ctx);
 int  hs_rule_add(hs_acl_ctx_t *ctx, rule_t *rule);
-int  hs_rule_del(hs_acl_ctx_t *ctx, rule_t *rule);
+int  hs_rule_del(hs_acl_ctx_t *ctx, rule_t *rule, hs_del_func delf, void *udata);
+int rule_is_equal(rule_t *r1, rule_t *r2);
+int hs_rule_exist(hs_acl_ctx_t *ctx, rule_t *rule);
+int hs_rule_find(hs_acl_ctx_t *ctx, rule_t *rule);
+int hs_rule_del_with_idx(hs_acl_ctx_t *ctx, int i);
 
 /* ruleset management */
 int  rule_set_init(hs_acl_ctx_t *acl_ctx, rule_set_t *ruleset);
 void rule_set_free(rule_set_t *ruleset);
 
-#define HS_RULE_NOT_FOUND -1 
+#define HS_RULE_NOT_FOUND -3 
+#define HS_RULE_EXIST -2 
 
 #endif

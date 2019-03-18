@@ -15,12 +15,12 @@ int _rule_pri_compare(const void *a, const void *b)
 }
 
 void show_ruleset(rule_set_t *ruleset)
-{ 
+{
     int num;
     int dim;
     for (num = 0; num < ruleset->num; num++) {
         printf (">>%5dth Rule:", ruleset->ruleList[num].pri);
-        for (dim = 0; dim < DIM; dim++) {
+        for (dim = 0; dim < HS_DIM; dim++) {
             printf (" [%-8x, %-8x]", ruleset->ruleList[num].range[dim][0], ruleset->ruleList[num].range[dim][1]);
         }
         printf("\n");
@@ -32,30 +32,30 @@ int rule_contained(rule_t *a, rule_t *b)
 {
     int i;
     int count = 0;
-    for (i = 0; i < DIM; i++) {
+    for (i = 0; i < HS_DIM; i++) {
         if(a->range[i][0] <= b->range[i][0]
                 && a->range[i][1]>= b->range[i][1])
             count ++;
     }
-    if(count == DIM) 
+    if(count == HS_DIM)
         return 1;
-    else 
+    else
         return 0;
 }
 
 #ifndef LIB
 #include "utils-inl.h"
-/* 
+/*
  * ===  FUNCTION  ======================================================================
  *         Name:  ReadIPRange
- *  Description:  
+ *  Description:
  * =====================================================================================
  */
 void ReadIPRange(FILE* fp, unsigned int* IPrange)
 {
     /*asindmemacces IPv4 prefixes*/
     /*temporary variables to store IP range */
-    unsigned int trange[4];	
+    unsigned int trange[4];
     unsigned int mask;
     char validslash;
     int masklit1;
@@ -141,7 +141,7 @@ void ReadPort(FILE* fp, unsigned int* from, unsigned int* to)
 void ReadProtocol(FILE* fp, unsigned int* from, unsigned int* to)
 {
     //TODO: currently, only support single protocol, or wildcard
-    char dump=0;    
+    char dump=0;
     unsigned int proto=0,len=0;
     if ( 7 != fscanf(fp, " %c%c%x%c%c%c%x",&dump,&dump,&proto,&dump,&dump,&dump,&len)) {
         printf ("\n>> [err] ill-format protocol rule-file\n");
@@ -149,7 +149,7 @@ void ReadProtocol(FILE* fp, unsigned int* from, unsigned int* to)
     }
     if (len==0xff) {
         *from = proto;
-        *to = *from;    
+        *to = *from;
     } else {
         *from = 0x0;
         *to = 0xff;
@@ -183,7 +183,7 @@ int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost)
         if (validfilter != '@') continue;	/* each rule should begin with an '@' */
 
         tempfilt = &tempfilt1;
-#if DIM == 5
+#if HS_DIM == 5
         ReadIPRange(fp,tempfilt->dim[0]);					/* reading SIP range */
         ReadIPRange(fp,tempfilt->dim[1]);					/* reading DIP range */
 
@@ -193,13 +193,13 @@ int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost)
         ReadProtocol(fp,&(tempfilt->dim[4][0]),&(tempfilt->dim[4][1]));
 
         /*read action taken by this rule
-          fscanf(fp, "%d", &tact);		
+          fscanf(fp, "%d", &tact);
           tempfilt->act = (unsigned char) tact;
 
           read the cost (position) , which is specified by the last parameter of this function*/
         tempfilt->cost = cost;
 #endif
-#if DIM == 3
+#if HS_DIM == 3
         ReadIPRange(fp, tempfilt->dim[0]);
         ReadPort(fp,&(tempfilt->dim[1][0]),&(tempfilt->dim[1][1]));
         ReadProtocol(fp,&(tempfilt->dim[2][0]),&(tempfilt->dim[2][1]));
@@ -209,7 +209,7 @@ int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost)
         // copy the temp filter to the global one
         memcpy(&(filtset->filtArr[filtset->numFilters]),tempfilt,sizeof(struct FILTER));
 
-        filtset->numFilters++;	   
+        filtset->numFilters++;
         return 0;
     }
     return -1;
@@ -218,19 +218,19 @@ int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost)
 
 void LoadFilters(FILE *fp, struct FILTSET *filtset)
 {
-    int line = 0;	
+    int line = 0;
     filtset->numFilters = 0;
-    while(!feof(fp)) 
+    while(!feof(fp))
     {
         ReadFilter(fp,filtset,line);
         line++;
     }
 }
 
-/* 
+/*
  * ===  FUNCTION  ======================================================================
  *         Name:	ReadFilterFile
- *  Description:	Read rules from file. 
+ *  Description:	Read rules from file.
  *					Rules are stored in 'filterset' for range matching
  * =====================================================================================
  */
@@ -242,13 +242,13 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
 
 
     fp = fopen (filename, "r");
-    if (fp == NULL) 
+    if (fp == NULL)
     {
         printf("Couldnt open filter set file \n");
         exit(-1);
     }
 
-    LoadFilters(fp, &filtset);	
+    LoadFilters(fp, &filtset);
     fclose(fp);
 
     /*
@@ -258,12 +258,12 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
     ruleset->ruleList = (rule_t*) malloc(ruleset->num * sizeof(rule_t));
     for (i = 0; i < ruleset->num; i++) {
         ruleset->ruleList[i].pri = filtset.filtArr[i].cost;
-        for (j = 0; j < DIM; j++) {
+        for (j = 0; j < HS_DIM; j++) {
             ruleset->ruleList[i].range[j][0] = filtset.filtArr[i].dim[j][0];
             ruleset->ruleList[i].range[j][1] = filtset.filtArr[i].dim[j][1];
         }
     }
-#if DIM == 3
+#if HS_DIM == 3
     qsort(ruleset->ruleList, ruleset->num, sizeof(rule_t), _rule_pri_compare);
     show_ruleset(ruleset);
 #endif

@@ -63,7 +63,7 @@ typedef struct hs_tree_s {
 } hs_tree_t;
 
 typedef struct hs_key_s {
-    uint32_t key[DIM];
+    uint32_t key[HS_DIM];
 } hs_key_t;
 
 /* build hyper-split-tree */
@@ -71,19 +71,28 @@ int hs_build(hs_tree_t* ruleset, unsigned int idx, unsigned int depth); /* main 
 int hs_build_tree(hs_tree_t *tree, hs_build_aux_t *aux, rule_set_t *ruleset);
 void hs_tree_info(hs_tree_t *tree);
 int hs_lookup(hs_tree_t *tree, hs_key_t *hs_key);
+rule_t * hs_lookup_entry(hs_tree_t *tree, hs_key_t *hs_key);
 void hs_free_all(hs_tree_t *tree);
+int hs_build_aux_init(hs_build_aux_t *aux, int size);
+void hs_build_aux_free(hs_build_aux_t *aux);
+int hs_build_aux_reinit(hs_build_aux_t *aux, int size);
+
+static inline int hs_rule_count(hs_tree_t *tree)
+{
+    return tree->ruleset.num;
+}
 
 static inline int linear_search(rule_set_t *ruleset, hs_key_t *key)
 {
     int i;
-    for(i=0;i<ruleset->num;i++) {
-        if(key->key[0] >= ruleset->ruleList[i].range[0][0] 
+    for(i=0;i<(int)ruleset->num;i++) {
+        if(key->key[0] >= ruleset->ruleList[i].range[0][0]
                 && key->key[0] <= ruleset->ruleList[i].range[0][1]
                 && key->key[1] >= ruleset->ruleList[i].range[1][0]
                 && key->key[1] <= ruleset->ruleList[i].range[1][1]
                 && key->key[2] >= ruleset->ruleList[i].range[2][0]
                 && key->key[2] <= ruleset->ruleList[i].range[2][1]
-#if DIM == 5 
+#if HS_DIM == 5
                 && key->key[3] >= ruleset->ruleList[i].range[3][0]
                 && key->key[3] <= ruleset->ruleList[i].range[3][1]
                 && key->key[4] >= ruleset->ruleList[i].range[4][0]
@@ -96,5 +105,36 @@ static inline int linear_search(rule_set_t *ruleset, hs_key_t *key)
 
     return -1;
 }
+
+static inline rule_t * linear_search_entry(rule_set_t *ruleset, hs_key_t *key)
+{
+    int i;
+    for(i=0;i<(int)ruleset->num;i++) {
+        if(key->key[0] >= ruleset->ruleList[i].range[0][0]
+                && key->key[0] <= ruleset->ruleList[i].range[0][1]
+                && key->key[1] >= ruleset->ruleList[i].range[1][0]
+                && key->key[1] <= ruleset->ruleList[i].range[1][1]
+                && key->key[2] >= ruleset->ruleList[i].range[2][0]
+                && key->key[2] <= ruleset->ruleList[i].range[2][1]
+#if HS_DIM == 5
+                && key->key[3] >= ruleset->ruleList[i].range[3][0]
+                && key->key[3] <= ruleset->ruleList[i].range[3][1]
+                && key->key[4] >= ruleset->ruleList[i].range[4][0]
+                && key->key[4] <= ruleset->ruleList[i].range[4][1]
+#endif
+          ){
+            return &(ruleset->ruleList[i]);
+        }
+    }
+
+    return NULL;
+}
+
+static inline int hs_tree_empty(hs_tree_t *tree)
+{
+    return tree->root == NULL;
+}
+
+#define HS_BUILD_INTERNAL_ERR -2
 
 #endif   /* ----- #ifndef _HS_H ----- */
