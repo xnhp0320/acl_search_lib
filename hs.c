@@ -275,18 +275,18 @@ static void remove_redund(rule_set_t *ruleset)
 int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
 {
     /* generate segments for input filtset */
-    unsigned int	dim, num, seg_cnt;
+    unsigned int    dim, num, seg_cnt;
     int             i,j, ret;
-    unsigned int	max_seg_cnt = 1; /* maximum different segment points */
-    unsigned int	d2s = 0;		 /* dimension to split (with max diffseg) */
-    unsigned int	thresh = 0;
-    unsigned int	range[2][2] = {{0, 0}, {0, 0}};     /* sub-space ranges for child-nodes */
-    float			hightAvg, hightAll;
+    unsigned int    max_seg_cnt = 1; /* maximum different segment points */
+    unsigned int    d2s = 0;         /* dimension to split (with max diffseg) */
+    unsigned int    thresh = 0;
+    unsigned int    range[2][2] = {{0, 0}, {0, 0}};     /* sub-space ranges for child-nodes */
+    float           hightAvg, hightAll;
     hs_node_t*      currNode = hs_node_vec_at(&tree->node_vec, idx);
     rule_set_t      *ruleset = &currNode->ruleset;
     rule_base_t     *ri, *rj;
 
-#ifdef	DEBUG
+#ifdef  DEBUG
     printf("\n\n>>hs_build at depth=%d", depth);
     printf("\n>>Current Rules:");
     show_ruleset(ruleset);
@@ -302,7 +302,7 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
         struct range1d *r;
         r = tree->aux->ranges_output;
 
-#ifdef	DEBUG
+#ifdef  DEBUG
         printf("\n>>dim[%d] segs: ", dim);
         for (num = 0; num < seg_cnt; num++) {
             printf ("[%u - %u] ", r[num].low, r[num].high);
@@ -321,7 +321,7 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
                     }
                 }
             }
-            if (hightAvg > hightAll/seg_cnt) {	/* possible choice for d2s, pos-1 is the number of segs */
+            if (hightAvg > hightAll/seg_cnt) {  /* possible choice for d2s, pos-1 is the number of segs */
                 float hightSum = 0;
 
                 /* select current dimension */
@@ -350,10 +350,10 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
                 range[1][1] = r[seg_cnt-1].high;
             }
             /* print segment list of each dim */
-#ifdef	DEBUG
+#ifdef  DEBUG
             printf("\n>>hightAvg=%f, hightAll=%f, segs=%d", hightAll/seg_cnt, hightAll, seg_cnt);
             for (num = 0; num < seg_cnt; num++) {
-                printf ("\nseg%5d[%8x, %8x](%u)	",
+                printf ("\nseg%5d[%8x, %8x](%u) ",
                         num, r[num].low, r[num].high, r[num].cost);
             }
 #endif /* DEBUG */
@@ -442,7 +442,7 @@ LEAF:
     for (i = 0; i < ruleset->num; i++) {
         ri = rule_base_from_rs(ruleset, i);
         if (ri->range[d2s][0] <= range[0][1]
-                &&	ri->range[d2s][1] >= range[0][0]) {
+                &&  ri->range[d2s][1] >= range[0][0]) {
             rj = rule_base_from_rs(&child->ruleset, j);
             memcpy(rj, ri, RULE_SIZE(&child->ruleset));
             /* in d2s dim, the search space needs to be trimmed off */

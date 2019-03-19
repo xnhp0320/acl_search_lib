@@ -230,7 +230,7 @@ void ReadPri(FILE *fp, unsigned int *cost)
 int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost, int v6)
 {
     /*allocate a few more bytes just to be on the safe side to avoid overflow etc*/
-    char validfilter;	/* validfilter means an '@'*/
+    char validfilter;   /* validfilter means an '@'*/
     struct FILTER *tempfilt,tempfilt1;
 
     while (!feof(fp))
@@ -240,13 +240,13 @@ int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost, int v6)
             /*printf ("\n>> [err] ill-format @ rule-file\n");*/
             /*exit (-1);*/
         }
-        if (validfilter != '@') continue;	/* each rule should begin with an '@' */
+        if (validfilter != '@') continue;   /* each rule should begin with an '@' */
 
         tempfilt = &tempfilt1;
         if (!v6) {
 #if HS_DIM == 5
-            ReadIPRange(fp,tempfilt->dim[0]);					/* reading SIP range */
-            ReadIPRange(fp,tempfilt->dim[1]);					/* reading DIP range */
+            ReadIPRange(fp,tempfilt->dim[0]);                   /* reading SIP range */
+            ReadIPRange(fp,tempfilt->dim[1]);                   /* reading DIP range */
 
             ReadPort(fp,&(tempfilt->dim[2][0]),&(tempfilt->dim[2][1]));
             ReadPort(fp,&(tempfilt->dim[3][0]),&(tempfilt->dim[3][1]));
@@ -296,16 +296,16 @@ void LoadFilters(FILE *fp, struct FILTSET *filtset, int v6)
 
 /*
  * ===  FUNCTION  ======================================================================
- *         Name:	ReadFilterFile
- *  Description:	Read rules from file.
- *					Rules are stored in 'filterset' for range matching
+ *         Name:    ReadFilterFile
+ *  Description:    Read rules from file.
+ *                  Rules are stored in 'filterset' for range matching
  * =====================================================================================
  */
-int ReadFilterFile(rule_set_t*	ruleset, char* filename)
+int ReadFilterFile(rule_set_t*  ruleset, char* filename)
 {
-    int		i, j;
-    FILE*	fp;
-    struct FILTSET	filtset;		/* filter set for range match */
+    int     i, j;
+    FILE*   fp;
+    struct FILTSET  filtset;        /* filter set for range match */
 
 
     fp = fopen (filename, "r");
@@ -338,14 +338,14 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
     show_ruleset(ruleset);
     /*printf("\n>>number of rules loaded from file: %d", ruleset->num);*/
 
-    return	0;
+    return  0;
 }
 
-int ReadFilterFile6(rule_set_t*	ruleset, char* filename)
+int ReadFilterFile6(rule_set_t* ruleset, char* filename)
 {
-    int		i, j;
-    FILE*	fp;
-    struct FILTSET	filtset;		/* filter set for range match */
+    int     i, j;
+    FILE*   fp;
+    struct FILTSET  filtset;        /* filter set for range match */
 
 
     fp = fopen (filename, "r");
@@ -378,7 +378,7 @@ int ReadFilterFile6(rule_set_t*	ruleset, char* filename)
     show_ruleset(ruleset);
     /*printf("\n>>number of rules loaded from file: %d", ruleset->num);*/
 
-    return	0;
+    return  0;
 }
 
 #endif

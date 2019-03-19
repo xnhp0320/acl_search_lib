@@ -30,3 +30,9 @@ The previous rule interface has been changed to use rule\_base\_t as input.
 See test\_rule.c and main.c for examples.
 Add a new file ipv6 as the IPv6 ruleset for test.
 
+# Have a Try
+
+make test
+./test -r fw1K
+./test -6 -r ipv6
+

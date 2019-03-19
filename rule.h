@@ -10,14 +10,14 @@
 typedef struct rule_base_s
 {
     void *          entry;
-	unsigned int	pri;
+    unsigned int    pri;
     unsigned int    range[0][2];
 } rule_base_t;
 
-typedef	struct rule_s
+typedef struct rule_s
 {
     rule_base_t     base;
-	unsigned int	range[HS_DIM][2];
+    unsigned int    range[HS_DIM][2];
 } rule_t;
 
 typedef struct rule6_s
@@ -28,9 +28,9 @@ typedef struct rule6_s
 
 typedef struct rule_set_s
 {
-	unsigned int	num; /* number of rules in the rule set */
+    unsigned int    num; /* number of rules in the rule set */
     int             is_v6;
-    void*			ruleList; /* rules in the set */
+    void*           ruleList; /* rules in the set */
 } rule_set_t;
 
 
