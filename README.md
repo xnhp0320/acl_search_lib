@@ -17,3 +17,15 @@ This has been fixed in the current version. I checked that sometimes this techni
 
 Therefore I decide to rewrite HyperSplit code for a robust implementation. 
 Feel free to drop an email to hepeng@ict.ac.cn if you have any question about the implementation.
+
+# IPv6 Support
+
+The code has been refactoring to support IPv6. The idea is quite easy to follows, we have changed one IPv6
+fields into four 32-bit fields. Thus an IPv6 three-tuple (IP, PORT, PROTO) is transformed into (32, 32, 32, 32, 32, 32)
+6 tuple matching.
+
+The code now exports *rule\_base\_t* for the base class for the rule data structure.
+The previous rule interface has been changed to use rule\_base\_t as input.
+
+See test\_rule.c for examples.
+
