@@ -20,12 +20,13 @@ Feel free to drop an email to hepeng@ict.ac.cn if you have any question about th
 
 # IPv6 Support
 
-The code has been refactoring to support IPv6. The idea is quite easy to follows, we have changed one IPv6
-fields into four 32-bit fields. Thus an IPv6 three-tuple (IP, PORT, PROTO) is transformed into (32, 32, 32, 32, 32, 32)
-6 tuple matching.
+The code has been refactored to support IPv6. The idea is quite easy to follow, we have changed one IPv6
+field into four 32-bit fields. Thus an IPv6 three-tuple (IP, PORT, PROTO) can be viewed as (32, 32, 32, 32, 32, 32)
+6-tuple matching.
 
-The code now exports *rule\_base\_t* for the base class for the rule data structure.
+The code now exports *rule\_base\_t* as the base class for the rule data structure.
 The previous rule interface has been changed to use rule\_base\_t as input.
 
-See test\_rule.c for examples.
+See test\_rule.c and main.c for examples.
+Add a new file ipv6 as the IPv6 ruleset for test.
 
