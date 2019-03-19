@@ -33,6 +33,9 @@ Add a new file ipv6 as the IPv6 ruleset for test.
 # Have a Try
 
 make test
+
 ./test -r fw1K
+
 ./test -6 -r ipv6
+
 
