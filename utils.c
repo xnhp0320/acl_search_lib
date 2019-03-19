@@ -1,12 +1,14 @@
 /* functions for ruleset file parsing */
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 #include "rule.h"
 
 int _rule_pri_compare(const void *a, const void *b)
 {
-    const rule_t *r1 = (const rule_t *)a;
-    const rule_t *r2 = (const rule_t *)b;
+    const rule_base_t *r1 = (const rule_base_t *)a;
+    const rule_base_t *r2 = (const rule_base_t *)b;
     if(r1->pri < r2->pri)
         return -1;
     else if(r1->pri > r2->pri)
@@ -18,26 +20,29 @@ void show_ruleset(rule_set_t *ruleset)
 {
     int num;
     int dim;
+    int tot_dim = RULE_DIM(ruleset->is_v6);
     for (num = 0; num < ruleset->num; num++) {
-        printf (">>%5dth Rule:", ruleset->ruleList[num].pri);
-        for (dim = 0; dim < HS_DIM; dim++) {
-            printf (" [%-8x, %-8x]", ruleset->ruleList[num].range[dim][0], ruleset->ruleList[num].range[dim][1]);
+        printf (">>%5dth Rule:", rule_base_from_rs(ruleset, num)->pri);
+        for (dim = 0; dim < tot_dim; dim++) {
+            printf (" [%-8x, %-8x]", rule_base_from_rs(ruleset, num)->range[dim][0], \
+                                     rule_base_from_rs(ruleset, num)->range[dim][1]);
         }
         printf("\n");
     }
 }
 
 /* a contains b */
-int rule_contained(rule_t *a, rule_t *b)
+int rule_contained(rule_base_t *a, rule_base_t *b, int is_v6)
 {
     int i;
     int count = 0;
-    for (i = 0; i < HS_DIM; i++) {
+    int tot_dim = RULE_DIM(is_v6);
+    for (i = 0; i < tot_dim; i++) {
         if(a->range[i][0] <= b->range[i][0]
                 && a->range[i][1]>= b->range[i][1])
             count ++;
     }
-    if(count == HS_DIM)
+    if(count == tot_dim)
         return 1;
     else
         return 0;
@@ -126,6 +131,62 @@ void ReadIPRange(FILE* fp, unsigned int* IPrange)
     IPrange[1] += ptrange[3];
 }
 
+void ReadIP6Range(FILE* fp, struct FILTER *flt)
+{
+    char str[256];
+    off_t curr, offset;
+    struct in6_addr addr;
+
+    curr = ftello(fp);
+    if(fgets(str, 256, fp) == NULL) {
+        printf ("\n>> [err] ill-format port range rule-file\n");
+        exit (-1);
+    }
+
+    char *p = strchr(str, ' ');
+    if (p == NULL) {
+        printf ("\n>> [err] ill-format port range rule-file\n");
+        exit (-1);
+    }
+
+    offset = strlen(str) - (p - str);
+    fseeko(fp, -offset, SEEK_CUR);
+    *p = '\0';
+
+    p = strchr(str, '/');
+    if (p == NULL) {
+        printf ("\n>> [err] ill-format port range rule-file\n");
+        exit (-1);
+    }
+
+    *p = '\0';
+    int ret = inet_pton(AF_INET6, str, &addr);
+    if (ret == 0) {
+        printf ("\n>> [err] ill-format port range rule-file\n");
+        exit (-1);
+    }
+    p ++;
+    int plen = atoi(p);
+
+    flt->dim[0][0] = ntohl(addr.__u6_addr.__u6_addr32[0]);
+    flt->dim[1][0] = ntohl(addr.__u6_addr.__u6_addr32[1]);
+    flt->dim[2][0] = ntohl(addr.__u6_addr.__u6_addr32[2]);
+    flt->dim[3][0] = ntohl(addr.__u6_addr.__u6_addr32[3]);
+
+    int dim = plen / 32;  
+    int i;
+
+    for (i = 0; i < 4; i ++) {
+        if (i < dim) 
+            flt->dim[i][1] = ntohl(addr.__u6_addr.__u6_addr32[i]);
+        else if (i == dim)
+            flt->dim[i][1] = ntohl(addr.__u6_addr.__u6_addr32[i]) | (UINT32_MAX >> (plen % 32));
+        else
+            flt->dim[i][1] = UINT32_MAX;
+    }
+}
+
+
 void ReadPort(FILE* fp, unsigned int* from, unsigned int* to)
 {
     unsigned int tfrom;
@@ -166,8 +227,7 @@ void ReadPri(FILE *fp, unsigned int *cost)
     *cost = pri;
 }
 
-
-int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost)
+int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost, int v6)
 {
     /*allocate a few more bytes just to be on the safe side to avoid overflow etc*/
     char validfilter;	/* validfilter means an '@'*/
@@ -183,29 +243,36 @@ int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost)
         if (validfilter != '@') continue;	/* each rule should begin with an '@' */
 
         tempfilt = &tempfilt1;
+        if (!v6) {
 #if HS_DIM == 5
-        ReadIPRange(fp,tempfilt->dim[0]);					/* reading SIP range */
-        ReadIPRange(fp,tempfilt->dim[1]);					/* reading DIP range */
+            ReadIPRange(fp,tempfilt->dim[0]);					/* reading SIP range */
+            ReadIPRange(fp,tempfilt->dim[1]);					/* reading DIP range */
 
-        ReadPort(fp,&(tempfilt->dim[2][0]),&(tempfilt->dim[2][1]));
-        ReadPort(fp,&(tempfilt->dim[3][0]),&(tempfilt->dim[3][1]));
+            ReadPort(fp,&(tempfilt->dim[2][0]),&(tempfilt->dim[2][1]));
+            ReadPort(fp,&(tempfilt->dim[3][0]),&(tempfilt->dim[3][1]));
 
-        ReadProtocol(fp,&(tempfilt->dim[4][0]),&(tempfilt->dim[4][1]));
+            ReadProtocol(fp,&(tempfilt->dim[4][0]),&(tempfilt->dim[4][1]));
 
-        /*read action taken by this rule
-          fscanf(fp, "%d", &tact);
-          tempfilt->act = (unsigned char) tact;
+            /*read action taken by this rule
+              fscanf(fp, "%d", &tact);
+              tempfilt->act = (unsigned char) tact;
 
-          read the cost (position) , which is specified by the last parameter of this function*/
-        tempfilt->cost = cost;
+              read the cost (position) , which is specified by the last parameter of this function*/
+            tempfilt->cost = cost;
 #endif
 #if HS_DIM == 3
-        ReadIPRange(fp, tempfilt->dim[0]);
-        ReadPort(fp,&(tempfilt->dim[1][0]),&(tempfilt->dim[1][1]));
-        ReadProtocol(fp,&(tempfilt->dim[2][0]),&(tempfilt->dim[2][1]));
-        ReadPri(fp, &cost);
-        tempfilt->cost = cost;
+            ReadIPRange(fp, tempfilt->dim[0]);
+            ReadPort(fp,&(tempfilt->dim[1][0]),&(tempfilt->dim[1][1]));
+            ReadProtocol(fp,&(tempfilt->dim[2][0]),&(tempfilt->dim[2][1]));
+            ReadPri(fp, &cost);
+            tempfilt->cost = cost;
 #endif
+        } else {
+            ReadIP6Range(fp,tempfilt);
+            ReadPort(fp,&(tempfilt->dim[4][0]),&(tempfilt->dim[4][1]));
+            ReadProtocol(fp,&(tempfilt->dim[5][0]),&(tempfilt->dim[5][1]));
+            tempfilt->cost = cost;
+        }
         // copy the temp filter to the global one
         memcpy(&(filtset->filtArr[filtset->numFilters]),tempfilt,sizeof(struct FILTER));
 
@@ -216,13 +283,13 @@ int ReadFilter(FILE* fp, struct FILTSET* filtset, unsigned int cost)
 }
 
 
-void LoadFilters(FILE *fp, struct FILTSET *filtset)
+void LoadFilters(FILE *fp, struct FILTSET *filtset, int v6)
 {
     int line = 0;
     filtset->numFilters = 0;
     while(!feof(fp))
     {
-        ReadFilter(fp,filtset,line);
+        ReadFilter(fp,filtset,line, v6);
         line++;
     }
 }
@@ -248,7 +315,7 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
         exit(-1);
     }
 
-    LoadFilters(fp, &filtset);
+    LoadFilters(fp, &filtset, 0);
     fclose(fp);
 
     /*
@@ -256,21 +323,64 @@ int ReadFilterFile(rule_set_t*	ruleset, char* filename)
      */
     ruleset->num = filtset.numFilters;
     ruleset->ruleList = (rule_t*) malloc(ruleset->num * sizeof(rule_t));
+    ruleset->is_v6 = 0;
+    rule_base_t *r;
     for (i = 0; i < ruleset->num; i++) {
-        ruleset->ruleList[i].pri = filtset.filtArr[i].cost;
+        r = rule_base_from_rs(ruleset, i);
+        r->pri = filtset.filtArr[i].cost;
         for (j = 0; j < HS_DIM; j++) {
-            ruleset->ruleList[i].range[j][0] = filtset.filtArr[i].dim[j][0];
-            ruleset->ruleList[i].range[j][1] = filtset.filtArr[i].dim[j][1];
+            r->range[j][0] = filtset.filtArr[i].dim[j][0];
+            r->range[j][1] = filtset.filtArr[i].dim[j][1];
         }
     }
-#if HS_DIM == 3
+
     qsort(ruleset->ruleList, ruleset->num, sizeof(rule_t), _rule_pri_compare);
     show_ruleset(ruleset);
-#endif
     /*printf("\n>>number of rules loaded from file: %d", ruleset->num);*/
 
     return	0;
 }
+
+int ReadFilterFile6(rule_set_t*	ruleset, char* filename)
+{
+    int		i, j;
+    FILE*	fp;
+    struct FILTSET	filtset;		/* filter set for range match */
+
+
+    fp = fopen (filename, "r");
+    if (fp == NULL)
+    {
+        printf("Couldnt open filter set file \n");
+        exit(-1);
+    }
+
+    LoadFilters(fp, &filtset, 1);
+    fclose(fp);
+
+    /*
+     *yaxuan: copy rules to dynamic structrue, and from now on, everything is new:-)
+     */
+    ruleset->num = filtset.numFilters;
+    ruleset->ruleList = (rule6_t*) malloc(ruleset->num * sizeof(rule6_t));
+    ruleset->is_v6 = 1;
+    rule_base_t *r;
+    for (i = 0; i < ruleset->num; i++) {
+        r = rule_base_from_rs(ruleset, i);
+        r->pri = filtset.filtArr[i].cost;
+        for (j = 0; j < HS_DIM6; j++) {
+            r->range[j][0] = filtset.filtArr[i].dim[j][0];
+            r->range[j][1] = filtset.filtArr[i].dim[j][1];
+        }
+    }
+
+    qsort(ruleset->ruleList, ruleset->num, sizeof(rule6_t), _rule_pri_compare);
+    show_ruleset(ruleset);
+    /*printf("\n>>number of rules loaded from file: %d", ruleset->num);*/
+
+    return	0;
+}
+
 #endif
 
 

@@ -185,8 +185,8 @@ static unsigned int hs_gen_segs(hs_node_t *node, hs_build_aux_t *aux, int dim)
 {
     int i;
     for(i = 0; i < node->ruleset.num; i++) {
-        aux->ranges_sort[i].low = node->ruleset.ruleList[i].range[dim][0];
-        aux->ranges_sort[i].high = node->ruleset.ruleList[i].range[dim][1];
+        aux->ranges_sort[i].low  = rule_base_from_rs(&node->ruleset, i)->range[dim][0];
+        aux->ranges_sort[i].high = rule_base_from_rs(&node->ruleset, i)->range[dim][1];
     }
     qsort(aux->ranges_sort, \
             node->ruleset.num, sizeof(struct range1d), _range_compare);
@@ -246,20 +246,26 @@ static unsigned int hs_gen_segs(hs_node_t *node, hs_build_aux_t *aux, int dim)
 static void remove_redund(rule_set_t *ruleset)
 {
     int i,j;
+    rule_base_t *ri, *rj;
 
     for(i=1; i < ruleset->num; i++) {
+        ri = rule_base_from_rs(ruleset, i);
         for(j=0; j < i; j++) {
-            if(rule_contained(&ruleset->ruleList[j], \
-                        &ruleset->ruleList[i])) {
-                ruleset->ruleList[i].pri = UINT32_MAX;
+            rj = rule_base_from_rs(ruleset, j);
+            if(rule_contained(rj, ri, RS_IS_V6(ruleset))) {
+                ri->pri = UINT32_MAX;
             }
         }
     }
 
+
     j = 1;
     for(i=1; i < ruleset->num; i ++) {
-        if(ruleset->ruleList[i].pri != UINT32_MAX) {
-            ruleset->ruleList[j++] = ruleset->ruleList[i];
+        ri = rule_base_from_rs(ruleset, i);
+        if(ri->pri != UINT32_MAX) {
+            rj = rule_base_from_rs(ruleset, j);
+            memcpy(rj, ri, RULE_SIZE(ruleset));
+            j ++;
         }
     }
     ruleset->num = j;
@@ -278,16 +284,12 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
     float			hightAvg, hightAll;
     hs_node_t*      currNode = hs_node_vec_at(&tree->node_vec, idx);
     rule_set_t      *ruleset = &currNode->ruleset;
+    rule_base_t     *ri, *rj;
 
 #ifdef	DEBUG
     printf("\n\n>>hs_build at depth=%d", depth);
     printf("\n>>Current Rules:");
-    for (num = 0; num < ruleset->num; num++) {
-        printf ("\n>>%5dth Rule:", ruleset->ruleList[num].pri);
-        for (dim = 0; dim < HS_DIM; dim++) {
-            printf (" [%-8x, %-8x]", ruleset->ruleList[num].range[dim][0], ruleset->ruleList[num].range[dim][1]);
-        }
-    }
+    show_ruleset(ruleset);
 #endif /* DEBUG */
 
     if(ruleset->num <= tree->params.bucketSize) {
@@ -295,7 +297,7 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
     }
 
     hightAvg = 2*ruleset->num + 1;
-    for (dim = 0; dim < HS_DIM; dim ++) {
+    for (dim = 0; dim < RULE_DIM(RS_IS_V6(ruleset)); dim ++) {
         seg_cnt = hs_gen_segs(currNode, tree->aux, dim);
         struct range1d *r;
         r = tree->aux->ranges_output;
@@ -311,8 +313,9 @@ int hs_build(hs_tree_t *tree, unsigned int idx, unsigned int depth)
             for (i = 0; i < seg_cnt; i++) {
                 r[i].cost = 0;
                 for (j = 0; j < ruleset->num; j++) {
-                    if (ruleset->ruleList[j].range[dim][0] <= r[i].low \
-                            && ruleset->ruleList[j].range[dim][1] >= r[i].high) {
+                    rj =  rule_base_from_rs(ruleset, j);
+                    if (rj->range[dim][0] <= r[i].low \
+                            && rj->range[dim][1] >= r[i].high) {
                         r[i].cost ++;
                         hightAll++;
                     }
@@ -420,29 +423,33 @@ LEAF:
     /*Generate left child rule list*/
     num = 0;
     for (i = 0; i < ruleset->num; i++) {
-        if (ruleset->ruleList[i].range[d2s][0] <= range[0][1]
-                &&	ruleset->ruleList[i].range[d2s][1] >= range[0][0]) {
+        ri = rule_base_from_rs(ruleset, i);
+        if (ri->range[d2s][0] <= range[0][1]
+                && ri->range[d2s][1] >= range[0][0]) {
             num++;
         }
     }
 
     child = hs_node_vec_at(&tree->node_vec, child_idx);
     child->ruleset.num = num;
-    child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
+    child->ruleset.is_v6 = RS_IS_V6(ruleset);
+    child->ruleset.ruleList = hs_malloc( child->ruleset.num * RULE_SIZE(ruleset) );
     if(child->ruleset.ruleList == NULL) {
         return -1;
     }
 
     j = 0;
     for (i = 0; i < ruleset->num; i++) {
-        if (ruleset->ruleList[i].range[d2s][0] <= range[0][1]
-                &&	ruleset->ruleList[i].range[d2s][1] >= range[0][0]) {
-            child->ruleset.ruleList[j] = ruleset->ruleList[i];
+        ri = rule_base_from_rs(ruleset, i);
+        if (ri->range[d2s][0] <= range[0][1]
+                &&	ri->range[d2s][1] >= range[0][0]) {
+            rj = rule_base_from_rs(&child->ruleset, j);
+            memcpy(rj, ri, RULE_SIZE(&child->ruleset));
             /* in d2s dim, the search space needs to be trimmed off */
-            if (child->ruleset.ruleList[j].range[d2s][0] < range[0][0])
-                child->ruleset.ruleList[j].range[d2s][0] = range[0][0];
-            if (child->ruleset.ruleList[j].range[d2s][1] > range[0][1])
-                child->ruleset.ruleList[j].range[d2s][1] = range[0][1];
+            if (rj->range[d2s][0] < range[0][0])
+                rj->range[d2s][0] = range[0][0];
+            if (rj->range[d2s][1] > range[0][1])
+                rj->range[d2s][1] = range[0][1];
             j++;
         }
     }
@@ -456,29 +463,33 @@ LEAF:
     /*Generate right child rule list*/
     num = 0;
     for (i = 0; i < ruleset->num; i++) {
-        if (ruleset->ruleList[i].range[d2s][0] <= range[1][1]
-                &&	ruleset->ruleList[i].range[d2s][1] >= range[1][0]) {
+        ri = rule_base_from_rs(ruleset, i);
+        if (ri->range[d2s][0] <= range[1][1]
+                && ri->range[d2s][1] >= range[1][0]) {
             num++;
         }
     }
 
     child = hs_node_vec_at(&tree->node_vec, child_idx + 1);
     child->ruleset.num = num;
-    child->ruleset.ruleList = (rule_t*) hs_malloc( child->ruleset.num * sizeof(rule_t) );
+    child->ruleset.is_v6 = RS_IS_V6(ruleset);
+    child->ruleset.ruleList = hs_malloc( child->ruleset.num * RULE_SIZE(ruleset) );
     if(child->ruleset.ruleList == NULL) {
         return -1;
     }
 
     j = 0;
     for (i = 0; i < ruleset->num; i++) {
-        if (ruleset->ruleList[i].range[d2s][0] <= range[1][1]
-                &&	ruleset->ruleList[i].range[d2s][1] >= range[1][0]) {
-            child->ruleset.ruleList[j] = ruleset->ruleList[i];
+        ri = rule_base_from_rs(ruleset, i);
+        if (ri->range[d2s][0] <= range[1][1]
+                && ri->range[d2s][1] >= range[1][0]) {
+            rj = rule_base_from_rs(&child->ruleset, j);
+            memcpy(rj, ri, RULE_SIZE(ruleset));
             /* in d2s dim, the search space needs to be trimmed off */
-            if (child->ruleset.ruleList[j].range[d2s][0] < range[1][0])
-                child->ruleset.ruleList[j].range[d2s][0] = range[1][0];
-            if (child->ruleset.ruleList[j].range[d2s][1] > range[1][1])
-                child->ruleset.ruleList[j].range[d2s][1] = range[1][1];
+            if (rj->range[d2s][0] < range[1][0])
+                rj->range[d2s][0] = range[1][0];
+            if (rj->range[d2s][1] > range[1][1])
+                rj->range[d2s][1] = range[1][1];
             j++;
         }
     }
@@ -574,7 +585,7 @@ int hs_lookup(hs_tree_t *tree, hs_key_t *hs_key)
     return pri;
 }
 
-rule_t *hs_lookup_entry(hs_tree_t *tree, hs_key_t *hs_key)
+rule_base_t *hs_lookup_entry(hs_tree_t *tree, hs_key_t *hs_key)
 {
     hs_node_t *n = tree->root;
     while(n->child_idx != UINT32_MAX) {

@@ -63,15 +63,23 @@ typedef struct hs_tree_s {
 } hs_tree_t;
 
 typedef struct hs_key_s {
-    uint32_t key[HS_DIM];
+    uint32_t key[0];
 } hs_key_t;
+
+typedef struct hs_key4_s {
+    uint32_t key[HS_DIM];
+} hs_key4_t;
+
+typedef struct hs_key6_s {
+    uint32_t key[HS_DIM6];
+} hs_key6_t;
 
 /* build hyper-split-tree */
 int hs_build(hs_tree_t* ruleset, unsigned int idx, unsigned int depth); /* main */
 int hs_build_tree(hs_tree_t *tree, hs_build_aux_t *aux, rule_set_t *ruleset);
 void hs_tree_info(hs_tree_t *tree);
 int hs_lookup(hs_tree_t *tree, hs_key_t *hs_key);
-rule_t * hs_lookup_entry(hs_tree_t *tree, hs_key_t *hs_key);
+rule_base_t * hs_lookup_entry(hs_tree_t *tree, hs_key_t *hs_key);
 void hs_free_all(hs_tree_t *tree);
 int hs_build_aux_init(hs_build_aux_t *aux, int size);
 void hs_build_aux_free(hs_build_aux_t *aux);
@@ -84,47 +92,43 @@ static inline int hs_rule_count(hs_tree_t *tree)
 
 static inline int linear_search(rule_set_t *ruleset, hs_key_t *key)
 {
-    int i;
+    int i, j;
+    rule_base_t *r;
+    int dim = RULE_DIM(RS_IS_V6(ruleset));
+
     for(i=0;i<(int)ruleset->num;i++) {
-        if(key->key[0] >= ruleset->ruleList[i].range[0][0]
-                && key->key[0] <= ruleset->ruleList[i].range[0][1]
-                && key->key[1] >= ruleset->ruleList[i].range[1][0]
-                && key->key[1] <= ruleset->ruleList[i].range[1][1]
-                && key->key[2] >= ruleset->ruleList[i].range[2][0]
-                && key->key[2] <= ruleset->ruleList[i].range[2][1]
-#if HS_DIM == 5
-                && key->key[3] >= ruleset->ruleList[i].range[3][0]
-                && key->key[3] <= ruleset->ruleList[i].range[3][1]
-                && key->key[4] >= ruleset->ruleList[i].range[4][0]
-                && key->key[4] <= ruleset->ruleList[i].range[4][1]
-#endif
-          ){
-            return ruleset->ruleList[i].pri;
+        r = rule_base_from_rs(ruleset, i);
+        for(j = 0; j < dim; j++) {
+            if(key->key[j] < r->range[j][0]
+                    || key->key[j] > r->range[j][1]) {
+                goto next_rule;
+            }
         }
+        return r->pri;
+next_rule:
+        continue;
     }
 
     return -1;
 }
 
-static inline rule_t * linear_search_entry(rule_set_t *ruleset, hs_key_t *key)
+static inline rule_base_t * linear_search_entry(rule_set_t *ruleset, hs_key_t *key)
 {
-    int i;
+    int i, j;
+    int dim = RULE_DIM(RS_IS_V6(ruleset));
+    rule_base_t *r;
+
     for(i=0;i<(int)ruleset->num;i++) {
-        if(key->key[0] >= ruleset->ruleList[i].range[0][0]
-                && key->key[0] <= ruleset->ruleList[i].range[0][1]
-                && key->key[1] >= ruleset->ruleList[i].range[1][0]
-                && key->key[1] <= ruleset->ruleList[i].range[1][1]
-                && key->key[2] >= ruleset->ruleList[i].range[2][0]
-                && key->key[2] <= ruleset->ruleList[i].range[2][1]
-#if HS_DIM == 5
-                && key->key[3] >= ruleset->ruleList[i].range[3][0]
-                && key->key[3] <= ruleset->ruleList[i].range[3][1]
-                && key->key[4] >= ruleset->ruleList[i].range[4][0]
-                && key->key[4] <= ruleset->ruleList[i].range[4][1]
-#endif
-          ){
-            return &(ruleset->ruleList[i]);
+        r = rule_base_from_rs(ruleset, i);
+        for (j = 0; j < dim; j++) {
+            if(key->key[j] < r->range[j][0]
+                    || key->key[j] > r->range[j][1]) {
+                goto next_rule;
+            }
         }
+        return r;
+next_rule:
+        continue;
     }
 
     return NULL;

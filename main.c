@@ -5,16 +5,18 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 char filename[128];
 char tracename[128];
 int bucketSize = BUCKETSIZE;
+int v6 = 0;
 
 void parseargs(int argc, char* argv[])
 {
     int c;
     int ok = 0;
-    while ((c = getopt(argc, argv, "r:b:t:")) != -1) {
+    while ((c = getopt(argc, argv, "r:b:t:6")) != -1) {
         switch (c) {
             case 'r':
                 strncpy(filename, optarg, 128);
@@ -25,6 +27,9 @@ void parseargs(int argc, char* argv[])
                 break;
             case 't':
                 strncpy(tracename, optarg, 128);
+                break;
+            case '6':
+                v6 = 1;
                 break;
             default:
                 break;
@@ -68,12 +73,13 @@ struct timespec orwl_gettime(void) {
 
 hs_key_t *sample_rules(rule_set_t *ruleset, int samples_cnt)
 {
-    hs_key_t *key = calloc(ruleset->num, samples_cnt * sizeof(hs_key_t));
+    int key_size = RS_IS_V6(ruleset) ? sizeof(hs_key6_t) : sizeof(hs_key4_t);
+    hs_key_t *key = calloc(ruleset->num, samples_cnt * key_size);
     int i, j, k;
     for(i = 0; i < ruleset->num; i ++) {
-        rule_t * r = &(ruleset->ruleList[i]);
+        rule_base_t * r = rule_base_from_rs(ruleset, i);
         for(j = 0; j < samples_cnt; j ++) {
-            for(k = 0; k < HS_DIM; k ++) {
+            for(k = 0; k < RULE_DIM(RS_IS_V6(ruleset)); k ++) {
                 key[i * samples_cnt + j].key[k] = \
                                                   rand() % ((unsigned long)r->range[k][1] - r->range[k][0] + 1ULL) + r->range[k][0];
             }
@@ -108,7 +114,10 @@ int main(int argc, char *argv[])
 
     parseargs(argc, argv);
     rule_set_t ruleset;
-    ReadFilterFile(&ruleset, filename);
+    if (!v6)
+        ReadFilterFile(&ruleset, filename);
+    else
+        ReadFilterFile6(&ruleset, filename);
 
     hs_tree_t tree;
     tree.params.bucketSize = bucketSize;
@@ -117,7 +126,9 @@ int main(int argc, char *argv[])
     struct timespec tp_a;
 
     CLOCK_GETTIME(&tp_b);
+    asm volatile("": : :"memory");
     ret = hs_build_tree(&tree, NULL, &ruleset);
+    asm volatile("": : :"memory");
     CLOCK_GETTIME(&tp_a);
     printf("Tree Building Time:\n");
     long nano = (tp_a.tv_nsec > tp_b.tv_nsec) ? (tp_a.tv_nsec -tp_b.tv_nsec) : (tp_a.tv_nsec - tp_b.tv_nsec + 1000000000ULL);
@@ -139,9 +150,10 @@ int main(int argc, char *argv[])
     int pri;
 
     CLOCK_GETTIME(&tp_b);
+    asm volatile("": : :"memory");
     for(i = 0; i < ruleset.num * 100; i ++) {
         pri = hs_lookup(&tree, &keys[i]);
-#if 1
+#if 1 
         pri ++;
 #else
         int lpri = linear_search(&ruleset, &keys[i]);
@@ -150,6 +162,7 @@ int main(int argc, char *argv[])
         }
 #endif
     }
+    asm volatile("": : :"memory");
     CLOCK_GETTIME(&tp_a);
     nano = (tp_a.tv_nsec > tp_b.tv_nsec) ? (tp_a.tv_nsec -tp_b.tv_nsec) : (tp_a.tv_nsec - tp_b.tv_nsec + 1000000000ULL);
     printf("sec %ld, nano %ld\n", tp_b.tv_sec, tp_b.tv_nsec);
@@ -173,9 +186,10 @@ int main(int argc, char *argv[])
         int i; 
         int pri;
         CLOCK_GETTIME(&tp_b);
+        asm volatile("": : :"memory");
         for(i = 0; i < cnt; i ++) {
             pri = hs_lookup(&tree, &keys[i]);
-#if 1
+#if 0
             pri ++;
 #else
             int lpri = linear_search(&ruleset, &keys[i]);
@@ -184,7 +198,7 @@ int main(int argc, char *argv[])
             }
 #endif
         }
-
+        asm volatile("": : :"memory");
         CLOCK_GETTIME(&tp_a);
         long nano = (tp_a.tv_nsec > tp_b.tv_nsec) ? (tp_a.tv_nsec -tp_b.tv_nsec) : (tp_a.tv_nsec - tp_b.tv_nsec + 1000000000ULL);
         printf("sec %ld, nano %ld\n", tp_b.tv_sec, tp_b.tv_nsec);
