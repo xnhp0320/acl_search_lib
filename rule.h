@@ -11,6 +11,7 @@ typedef struct rule_base_s
 {
     void *          entry;
     unsigned int    pri;
+    unsigned int    pad;
     unsigned int    range[0][2];
 } rule_base_t;
 

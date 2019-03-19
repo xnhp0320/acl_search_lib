@@ -168,7 +168,7 @@ int hs_rule_add(hs_acl_ctx_t *ctx, rule_base_t *rule)
     }
 
     r = rule_base_from_slice(&ctx->rs_slice, idx);
-    *r = *rule;
+    memcpy(r, rule, RULE_SIZE(&ctx->rs_slice));
     ctx->rs_slice.len ++;
     return 0;
 }
