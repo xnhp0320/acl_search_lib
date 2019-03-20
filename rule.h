@@ -92,6 +92,7 @@ int hs_rule_del_with_idx(hs_acl_ctx_t *ctx, int i);
 /* ruleset management */
 int  rule_set_init(hs_acl_ctx_t *acl_ctx, rule_set_t *ruleset);
 void rule_set_free(rule_set_t *ruleset);
+void show_rule(rule_base_t *rule, int v6);
 
 #define HS_RULE_NOT_FOUND -3 
 #define HS_RULE_EXIST -2 

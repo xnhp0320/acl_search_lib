@@ -34,8 +34,22 @@ Add a new file ipv6 as the IPv6 ruleset for test.
 
 make test
 
+IPv4:
+
+```
 ./test -r fw1K
+```
 
+IPv6:
+```
 ./test -6 -r ipv6
+```
 
+# Tests
+
+```
+make clean;make test_rule
+```
+
+and run ./test\_rule
 

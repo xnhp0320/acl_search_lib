@@ -16,18 +16,24 @@ int _rule_pri_compare(const void *a, const void *b)
     return 0;
 }
 
+void show_rule(rule_base_t *r, int v6)
+{
+    int dim;
+    int tot_dim = RULE_DIM(v6);
+    for (dim = 0; dim < tot_dim; dim++) {
+        printf (" [%-8x, %-8x]", r->range[dim][0], r->range[dim][1]);
+    }
+    printf("\n");
+}
+
 void show_ruleset(rule_set_t *ruleset)
 {
     int num;
-    int dim;
-    int tot_dim = RULE_DIM(ruleset->is_v6);
+    rule_base_t *r;
     for (num = 0; num < ruleset->num; num++) {
-        printf (">>%5dth Rule:", rule_base_from_rs(ruleset, num)->pri);
-        for (dim = 0; dim < tot_dim; dim++) {
-            printf (" [%-8x, %-8x]", rule_base_from_rs(ruleset, num)->range[dim][0], \
-                                     rule_base_from_rs(ruleset, num)->range[dim][1]);
-        }
-        printf("\n");
+        r = rule_base_from_rs(ruleset, num);
+        printf (">>%5dth Rule:", r->pri);
+        show_rule(r, RS_IS_V6(ruleset));
     }
 }
 
