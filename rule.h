@@ -62,21 +62,21 @@ typedef struct hs_acl_ctx_s
 #define RS_IS_V6(rs) ((rs)->is_v6)
 #define RULE_SIZE(rs) ((rs)->is_v6 ? sizeof(rule6_t) : sizeof(rule_t))
 #define RULE_DIM(v6) (v6 ? HS_DIM6 : HS_DIM)
-#define RULE_IDX(rs, i)  (rule_base_t*)(((rule_t *)rs->ruleList) + idx)
-#define RULE6_IDX(rs, i) (rule_base_t*)(((rule6_t *)rs->ruleList) + idx)
+#define RULE_IDX(rl, idx)  (rule_base_t*)(((rule_t *)rl) + idx)
+#define RULE6_IDX(rl, idx) (rule_base_t*)(((rule6_t *)rl) + idx)
 
 
 static inline rule_base_t *rule_base_from_slice(rule_set_slice_t *slice, int idx)
 {
     rule_base_t *base;
-    base = slice->is_v6 ? RULE6_IDX(slice, idx) : RULE_IDX(slice, idx);
+    base = slice->is_v6 ? RULE6_IDX(slice->ruleList, idx) : RULE_IDX(slice->ruleList, idx);
     return base;
 }
 
 static inline rule_base_t *rule_base_from_rs(rule_set_t *rs, int idx)
 {
     rule_base_t *base;
-    base = rs->is_v6 ? RULE6_IDX(rs, idx) : RULE_IDX(rs, idx);
+    base = rs->is_v6 ? RULE6_IDX(rs->ruleList, idx) : RULE_IDX(rs->ruleList, idx);
     return base;
 }
 
