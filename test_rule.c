@@ -223,6 +223,10 @@ void test_8(void)
     assert(r->pri == 15);
     printf("Test %s: found rule\n", __func__);
     show_rule(r, RS_IS_V6(&ruleset));
+    r = linear_search_entry(&ruleset, (hs_key_t*)&key2);
+    assert(r != NULL);
+    assert(r->pri == 15);
+    show_rule(r, RS_IS_V6(&ruleset));
 
     hs_free_all(&tree);
     hs_acl_ctx_free(&ctx);
